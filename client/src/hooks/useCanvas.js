@@ -37,7 +37,10 @@ export function useCanvas() {
    * 3. Return remaining ops sorted by sequenceNumber.
    */
   function getVisibleOperations() {
-    const sorted = [...operations].sort((a, b) => (a.sequenceNumber ?? 0) - (b.sequenceNumber ?? 0));
+    const sorted = [...operations].sort((a, b) => {
+      const tDiff = (a.timestamp ?? 0) - (b.timestamp ?? 0);
+      return tDiff !== 0 ? tDiff : (a.sequenceNumber ?? 0) - (b.sequenceNumber ?? 0);
+    });
     let clearIndex = -1;
     for (let i = sorted.length - 1; i >= 0; i--) {
       if (sorted[i].type === OP_TYPE.CLEAR) {

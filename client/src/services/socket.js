@@ -28,6 +28,8 @@ export function getSocket() {
 
 export function onConnectionStatus(cb) {
   statusCallbacks.add(cb);
+  // Immediately call with current status so components mounting after connect see the right state
+  cb(socket.connected ? 'Connected' : 'Disconnected');
 }
 
 export function offConnectionStatus(cb) {
