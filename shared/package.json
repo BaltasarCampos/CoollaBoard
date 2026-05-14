@@ -1,0 +1,11 @@
+{
+  "name": "shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "constants.js",
+  "exports": {
+    ".": "./constants.js",
+    "./constants.js": "./constants.js"
+  }
+}
