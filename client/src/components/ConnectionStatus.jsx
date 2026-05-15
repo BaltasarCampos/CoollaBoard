@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { onConnectionStatus, offConnectionStatus } from '../services/socket.js';
+import { CONNECTION_STATUS } from 'shared/constants.js';
 
 const STYLES = {
-  Connected:    { backgroundColor: '#4caf50', color: '#fff' },
-  Reconnecting: { backgroundColor: '#ff9800', color: '#fff' },
-  Disconnected: { backgroundColor: '#f44336', color: '#fff' },
+  [CONNECTION_STATUS.CONNECTED]:    { backgroundColor: '#4caf50', color: '#fff' },
+  [CONNECTION_STATUS.RECONNECTING]: { backgroundColor: '#ff9800', color: '#fff' },
+  [CONNECTION_STATUS.DISCONNECTED]: { backgroundColor: '#f44336', color: '#fff' },
 };
 
 export default function ConnectionStatus() {
-  const [status, setStatus] = useState('Disconnected');
+  const [status, setStatus] = useState(CONNECTION_STATUS.DISCONNECTED);
 
   useEffect(() => {
     onConnectionStatus(setStatus);

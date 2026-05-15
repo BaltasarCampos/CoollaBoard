@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client';
-import { EVENTS, SERVER_EVENTS } from 'shared/constants.js';
+import { EVENTS, SERVER_EVENTS, CONNECTION_STATUS, ERROR_CODES } from 'shared/constants.js';
 
 const socket = io('http://localhost:3001', {
   autoConnect: true,
@@ -17,10 +17,10 @@ function emitStatus(status) {
   for (const cb of statusCallbacks) cb(status);
 }
 
-socket.on('connect',           () => emitStatus('Connected'));
-socket.on('disconnect',        () => emitStatus('Disconnected'));
-socket.on('reconnect_attempt', () => emitStatus('Reconnecting'));
-socket.on('reconnect',         () => emitStatus('Connected'));
+socket.on('connect',           () => emitStatus(CONNECTION_STATUS.CONNECTED));
+socket.on('disconnect',        () => emitStatus(CONNECTION_STATUS.DISCONNECTED));
+socket.on('reconnect_attempt', () => emitStatus(CONNECTION_STATUS.RECONNECTING));
+socket.on('reconnect',         () => emitStatus(CONNECTION_STATUS.CONNECTED));
 
 export function getSocket() {
   return socket;
@@ -29,7 +29,7 @@ export function getSocket() {
 export function onConnectionStatus(cb) {
   statusCallbacks.add(cb);
   // Immediately call with current status so components mounting after connect see the right state
-  cb(socket.connected ? 'Connected' : 'Disconnected');
+  cb(socket.connected ? CONNECTION_STATUS.CONNECTED : CONNECTION_STATUS.DISCONNECTED);
 }
 
 export function offConnectionStatus(cb) {
@@ -40,7 +40,7 @@ export function createRoom() {
   return new Promise((resolve, reject) => {
     socket.emit(EVENTS.ROOM_CREATE, {}, (ack) => {
       if (ack?.ok) resolve({ roomId: ack.roomId, userId: ack.userId });
-      else reject(new Error(ack?.error || 'SERVER_ERROR'));
+      else reject(new Error(ack?.error || ERROR_CODES.SERVER_ERROR));
     });
   });
 }
@@ -50,7 +50,7 @@ export function joinRoom(roomId, lastSequence) {
     const payload = lastSequence != null ? { roomId, lastSequence } : { roomId };
     socket.emit(EVENTS.ROOM_JOIN, payload, (ack) => {
       if (ack?.ok) resolve({ operations: ack.operations, userId: ack.userId });
-      else reject(new Error(ack?.error || 'SERVER_ERROR'));
+      else reject(new Error(ack?.error || ERROR_CODES.SERVER_ERROR));
     });
   });
 }

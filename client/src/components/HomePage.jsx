@@ -1,58 +1,9 @@
-import React, { useState } from 'react';
-import { createRoom, joinRoom } from '../services/socket.js';
-
-const ROOM_ID_PATTERN = /^[A-Z0-9]{6}$/;
+import React from 'react';
+import { useHomePage } from '../hooks/useHomePage.js';
+import { ROOM_ID_LENGTH } from 'shared/constants.js';
 
 export default function HomePage({ onRoomJoined, message }) {
-  const [input, setInput]       = useState('');
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
-
-  function handleInputChange(e) {
-    setInput(e.target.value.toUpperCase());
-    setError('');
-  }
-
-  async function handleCreate() {
-    setLoading(true);
-    setError('');
-    try {
-      const result = await createRoom();
-      onRoomJoined(result);
-    } catch (err) {
-      setError('Failed to create room. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleJoin() {
-    const roomId = input.trim().toUpperCase();
-
-    if (roomId.length !== 6) {
-      setError('Room ID must be exactly 6 characters.');
-      return;
-    }
-    if (!ROOM_ID_PATTERN.test(roomId)) {
-      setError('Room ID must contain only letters and numbers.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const result = await joinRoom(roomId);
-      onRoomJoined({ roomId, ...result });
-    } catch (err) {
-      if (err.message === 'ROOM_NOT_FOUND') {
-        setError('Room not found. Please check the ID and try again.');
-      } else {
-        setError('Failed to join room. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { input, error, loading, handleInputChange, handleCreate, handleJoin } = useHomePage({ onRoomJoined });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem', gap: '1rem' }}>
@@ -72,7 +23,7 @@ export default function HomePage({ onRoomJoined, message }) {
           placeholder="Room ID"
           value={input}
           onChange={handleInputChange}
-          maxLength={6}
+          maxLength={ROOM_ID_LENGTH}
           style={{ textTransform: 'uppercase' }}
         />
         <button onClick={handleJoin} disabled={loading}>
