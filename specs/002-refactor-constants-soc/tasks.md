@@ -24,7 +24,7 @@ description: "Task list for Codebase Refactor — Constants & Separation of Conc
 
 **Purpose**: Confirm the test suite is green before any changes are made. This is the baseline proof for US1.
 
-- [ ] T001 Run full baseline test suite and confirm all tests pass: `cd server && npm test`, `cd client && npm test -- --run`, and `cd e2e && npx playwright test` (requires server on :3001)
+- [X] T001 Run full baseline test suite and confirm all tests pass: `cd server && npm test`, `cd client && npm test -- --run`, and `cd e2e && npx playwright test` (requires server on :3001)
 
 ---
 
@@ -34,7 +34,7 @@ description: "Task list for Codebase Refactor — Constants & Separation of Conc
 
 **⚠️ CRITICAL**: No US2 or US3 work can begin until this phase is complete.
 
-- [ ] T002 Add `TOOL_NAMES`, `CONNECTION_STATUS`, and `ERROR_CODES` export groups to `shared/constants.js` (append after existing exports; do not modify existing exports)
+- [X] T002 Add `TOOL_NAMES`, `CONNECTION_STATUS`, and `ERROR_CODES` export groups to `shared/constants.js` (append after existing exports; do not modify existing exports)
 
 **Checkpoint**: Run `cd client && npm test -- --run` — all existing tests must still pass (additions only, no breakage).
 
@@ -46,7 +46,7 @@ description: "Task list for Codebase Refactor — Constants & Separation of Conc
 
 **Independent Test**: Run the full existing test suite (`server`, `client`, `e2e`) and confirm every test passes before *and* after the refactor.
 
-- [ ] T003 [US1] Run client + server tests after T002 to confirm zero regressions from constants additions in `client/tests/unit/` and `server/tests/`
+- [X] T003 [US1] Run client + server tests after T002 to confirm zero regressions from constants additions in `client/tests/unit/` and `server/tests/`
 
 **Checkpoint**: All tests green ✓ — safe to begin US2 literal replacements.
 
@@ -60,11 +60,11 @@ description: "Task list for Codebase Refactor — Constants & Separation of Conc
 
 > All four T004–T007 tasks operate on different files with no inter-dependencies and **can run in parallel**.
 
-- [ ] T004 [P] [US2] Replace `'Connected'`, `'Reconnecting'`, `'Disconnected'` bare string literals in `client/src/services/socket.js` with `CONNECTION_STATUS.CONNECTED`, `CONNECTION_STATUS.RECONNECTING`, `CONNECTION_STATUS.DISCONNECTED`; add `CONNECTION_STATUS` to the `shared/constants.js` import
-- [ ] T005 [P] [US2] Replace `'Connected'`, `'Reconnecting'`, `'Disconnected'` bare string literals (STYLES object keys and `useState` default) in `client/src/components/ConnectionStatus.jsx` with `CONNECTION_STATUS.*`; add `CONNECTION_STATUS` to the `shared/constants.js` import
-- [ ] T006 [P] [US2] Replace `'ROOM_NOT_FOUND'` and `'SERVER_ERROR'` bare string literals in `server/src/handlers/eventHandlers.js` with `ERROR_CODES.ROOM_NOT_FOUND` and `ERROR_CODES.SERVER_ERROR`; add `ERROR_CODES` to the `shared/constants.js` import
-- [ ] T007 [P] [US2] Replace `'ROOM_NOT_FOUND'` bare string comparison in `client/src/hooks/useRoom.js` with `ERROR_CODES.ROOM_NOT_FOUND`; add `ERROR_CODES` to the `shared/constants.js` import
-- [ ] T008 [US2] Run client and server test suites (`cd client && npm test -- --run` and `cd server && npm test`) to confirm zero regressions after T004–T007
+- [X] T004 [P] [US2] Replace `'Connected'`, `'Reconnecting'`, `'Disconnected'` bare string literals in `client/src/services/socket.js` with `CONNECTION_STATUS.CONNECTED`, `CONNECTION_STATUS.RECONNECTING`, `CONNECTION_STATUS.DISCONNECTED`; add `CONNECTION_STATUS` to the `shared/constants.js` import
+- [X] T005 [P] [US2] Replace `'Connected'`, `'Reconnecting'`, `'Disconnected'` bare string literals (STYLES object keys and `useState` default) in `client/src/components/ConnectionStatus.jsx` with `CONNECTION_STATUS.*`; add `CONNECTION_STATUS` to the `shared/constants.js` import
+- [X] T006 [P] [US2] Replace `'ROOM_NOT_FOUND'` and `'SERVER_ERROR'` bare string literals in `server/src/handlers/eventHandlers.js` with `ERROR_CODES.ROOM_NOT_FOUND` and `ERROR_CODES.SERVER_ERROR`; add `ERROR_CODES` to the `shared/constants.js` import
+- [X] T007 [P] [US2] Replace `'ROOM_NOT_FOUND'` bare string comparison in `client/src/hooks/useRoom.js` with `ERROR_CODES.ROOM_NOT_FOUND`; add `ERROR_CODES` to the `shared/constants.js` import
+- [X] T008 [US2] Run client and server test suites (`cd client && npm test -- --run` and `cd server && npm test`) to confirm zero regressions after T004–T007
 
 **Checkpoint**: All literal replacements complete; tests still green ✓ — safe to begin US3 hook extractions.
 
@@ -80,23 +80,23 @@ description: "Task list for Codebase Refactor — Constants & Separation of Conc
 
 > **Follow Constitution I + SC-005**: Write these test files BEFORE implementing the hooks. Run them and confirm they FAIL (red phase) before proceeding to implementation.
 
-- [ ] T009 [P] [US3] Write `client/tests/unit/useHomePage.test.js` (TDD-red): cover `handleJoin` with too-short input → sets `error`; invalid characters → sets `error`; valid input → calls `joinRoom`, invokes `onRoomJoined`; `handleCreate` success → calls `createRoom`, invokes `onRoomJoined`; `handleCreate` failure → sets `error`; `handleInputChange` clears existing `error`
-- [ ] T010 [P] [US3] Write `client/tests/unit/useCanvasRenderer.test.js` (TDD-red): cover `renderDraw` called for a `OP_TYPE.DRAW` op; `renderErase` called for a `OP_TYPE.ERASE` op; canvas fully cleared before each render pass; `dirtyRef` behaviour (re-render on `operations` change, no render when not dirty). **Test harness**: stub `HTMLCanvasElement.prototype.getContext` to return a mock 2D context (see existing `useCanvas.test.js` for the pattern), mock `requestAnimationFrame` via `vi.useFakeTimers()` / `vi.spyOn(globalThis, 'requestAnimationFrame')`, and stub `ResizeObserver` as a class mock (`vi.stubGlobal('ResizeObserver', ...)`).
+- [X] T009 [P] [US3] Write `client/tests/unit/useHomePage.test.js` (TDD-red): cover `handleJoin` with too-short input → sets `error`; invalid characters → sets `error`; valid input → calls `joinRoom`, invokes `onRoomJoined`; `handleCreate` success → calls `createRoom`, invokes `onRoomJoined`; `handleCreate` failure → sets `error`; `handleInputChange` clears existing `error`
+- [X] T010 [P] [US3] Write `client/tests/unit/useCanvasRenderer.test.js` (TDD-red): cover `renderDraw` called for a `OP_TYPE.DRAW` op; `renderErase` called for a `OP_TYPE.ERASE` op; canvas fully cleared before each render pass; `dirtyRef` behaviour (re-render on `operations` change, no render when not dirty). **Test harness**: stub `HTMLCanvasElement.prototype.getContext` to return a mock 2D context (see existing `useCanvas.test.js` for the pattern), mock `requestAnimationFrame` via `vi.useFakeTimers()` / `vi.spyOn(globalThis, 'requestAnimationFrame')`, and stub `ResizeObserver` as a class mock (`vi.stubGlobal('ResizeObserver', ...)`).
 
 Run tests after T009 and T010 — confirm both new test files **FAIL** (red). ✓
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Implement `client/src/hooks/useHomePage.js` per `contracts/hook-interfaces.md`: expose `{ input, error, loading, handleInputChange, handleCreate, handleJoin }`; derive `ROOM_ID_PATTERN` from `ROOM_ID_ALPHABET` + `ROOM_ID_LENGTH`; use `ERROR_CODES` when mapping socket rejection; guard against double-submit when `loading === true`
-- [ ] T012 [US3] Refactor `client/src/components/HomePage.jsx` to a thin presentational component: remove all inline state, validation regex, and direct `createRoom`/`joinRoom` calls; delegate entirely to `useHomePage({ onRoomJoined })`; retain only JSX and event-binding
-- [ ] T013 [US3] Run client tests (`cd client && npm test -- --run`) — confirm `useHomePage` tests go **GREEN** and all existing `HomePage` tests still pass
-- [ ] T014 [US3] Implement `client/src/hooks/useCanvasRenderer.js` per `contracts/hook-interfaces.md`: accept `(canvasRef, operations, getVisibleOperations)`; own the `requestAnimationFrame` render loop, `dirtyRef`, `renderDraw`, `renderErase`, and `ResizeObserver` resize logic; return `void`; clean up RAF loop and observer on unmount
-- [ ] T015 [US3] Refactor `client/src/components/Canvas.jsx` to delegate all rendering logic to `useCanvasRenderer(canvasRef, operations, getVisibleOperations)`; retain only the `<canvas>` JSX element and pointer-event handlers
-- [ ] T016 [US3] Run client tests — confirm `useCanvasRenderer` tests go **GREEN** and all existing `Canvas` + `useCanvas` tests still pass
-- [ ] T017 [US3] Extend `client/src/hooks/useRoom.js` to absorb the reconnect `useEffect` from `RoomPage`: handle socket `'reconnect'` event by calling `joinRoom(roomId, lastSequence)` and `addOperations(delta)` on success; accept `addOperations` as a new optional parameter; use `ERROR_CODES.ROOM_NOT_FOUND` when handling `onLeaveRoom` for reconnect failure
-- [ ] T018 [US3] Refactor `client/src/components/RoomPage.jsx`: remove `getSocket` and `joinRoom` imports from `services/socket.js`; remove the inline reconnect `useEffect`; pass `addOperations` to `useRoom`; replace `useState('pen')` with `useState(TOOL_NAMES.PEN)`; replace `data?.error === 'ROOM_NOT_FOUND'` with `ERROR_CODES.ROOM_NOT_FOUND`; define and pass `onClear` handler (generates `operationId` via `crypto.randomUUID()`, calls `emitClear`) down to `Toolbar`. **Note**: `addOperations` (the dedup-merge `useCallback`) intentionally remains in `RoomPage` — it is bridge/glue state, not business logic, and is an accepted trade-off per plan.md §4.2. Do not extract it into a separate hook.
-- [ ] T019 [US3] Refactor `client/src/components/Toolbar.jsx`: replace all `'pen'` and `'eraser'` string literals with `TOOL_NAMES.PEN` / `TOOL_NAMES.ERASER`; remove direct `emitClear` socket call from `handleConfirmClear`; receive and invoke the `onClear` prop supplied by `RoomPage` instead
-- [ ] T020 [US3] Run full client test suite (`cd client && npm test -- --run`) after all component refactors to confirm zero regressions across all unit tests
+- [X] T011 [US3] Implement `client/src/hooks/useHomePage.js` per `contracts/hook-interfaces.md`: expose `{ input, error, loading, handleInputChange, handleCreate, handleJoin }`; derive `ROOM_ID_PATTERN` from `ROOM_ID_ALPHABET` + `ROOM_ID_LENGTH`; use `ERROR_CODES` when mapping socket rejection; guard against double-submit when `loading === true`
+- [X] T012 [US3] Refactor `client/src/components/HomePage.jsx` to a thin presentational component: remove all inline state, validation regex, and direct `createRoom`/`joinRoom` calls; delegate entirely to `useHomePage({ onRoomJoined })`; retain only JSX and event-binding
+- [X] T013 [US3] Run client tests (`cd client && npm test -- --run`) — confirm `useHomePage` tests go **GREEN** and all existing `HomePage` tests still pass
+- [X] T014 [US3] Implement `client/src/hooks/useCanvasRenderer.js` per `contracts/hook-interfaces.md`: accept `(canvasRef, operations, getVisibleOperations)`; own the `requestAnimationFrame` render loop, `dirtyRef`, `renderDraw`, `renderErase`, and `ResizeObserver` resize logic; return `void`; clean up RAF loop and observer on unmount
+- [X] T015 [US3] Refactor `client/src/components/Canvas.jsx` to delegate all rendering logic to `useCanvasRenderer(canvasRef, operations, getVisibleOperations)`; retain only the `<canvas>` JSX element and pointer-event handlers
+- [X] T016 [US3] Run client tests — confirm `useCanvasRenderer` tests go **GREEN** and all existing `Canvas` + `useCanvas` tests still pass
+- [X] T017 [US3] Extend `client/src/hooks/useRoom.js` to absorb the reconnect `useEffect` from `RoomPage`: handle socket `'reconnect'` event by calling `joinRoom(roomId, lastSequence)` and `addOperations(delta)` on success; accept `addOperations` as a new optional parameter; use `ERROR_CODES.ROOM_NOT_FOUND` when handling `onLeaveRoom` for reconnect failure
+- [X] T018 [US3] Refactor `client/src/components/RoomPage.jsx`: remove `getSocket` and `joinRoom` imports from `services/socket.js`; remove the inline reconnect `useEffect`; pass `addOperations` to `useRoom`; replace `useState('pen')` with `useState(TOOL_NAMES.PEN)`; replace `data?.error === 'ROOM_NOT_FOUND'` with `ERROR_CODES.ROOM_NOT_FOUND`; define and pass `onClear` handler (generates `operationId` via `crypto.randomUUID()`, calls `emitClear`) down to `Toolbar`. **Note**: `addOperations` (the dedup-merge `useCallback`) intentionally remains in `RoomPage` — it is bridge/glue state, not business logic, and is an accepted trade-off per plan.md §4.2. Do not extract it into a separate hook.
+- [X] T019 [US3] Refactor `client/src/components/Toolbar.jsx`: replace all `'pen'` and `'eraser'` string literals with `TOOL_NAMES.PEN` / `TOOL_NAMES.ERASER`; remove direct `emitClear` socket call from `handleConfirmClear`; receive and invoke the `onClear` prop supplied by `RoomPage` instead
+- [X] T020 [US3] Run full client test suite (`cd client && npm test -- --run`) after all component refactors to confirm zero regressions across all unit tests
 
 **Checkpoint**: All extracted hooks tested and green; all refactored components pass existing tests without modification ✓
 
@@ -106,11 +106,11 @@ Run tests after T009 and T010 — confirm both new test files **FAIL** (red). �
 
 **Purpose**: Final quality gate for US1 — confirm the entire test suite (unit, integration, E2E) passes with zero modifications, and validate all success criteria.
 
-- [ ] T021 Run complete test suite end-to-end: `cd server && npm test`, `cd client && npm test -- --run`, `cd e2e && npx playwright test` (requires server on :3001) — every test must pass; zero failures
-- [ ] T022 [P] Verify SC-002 — search production source files (`client/src/`, `server/src/`, `shared/`) for bare string literals `'pen'`, `'eraser'`, `'Connected'`, `'Reconnecting'`, `'Disconnected'`, `'ROOM_NOT_FOUND'`, `'SERVER_ERROR'` and confirm zero occurrences outside `shared/constants.js`
-- [ ] T023 [P] Verify SC-003 — search production source files for numeric literal `6` used as room-ID length (e.g., `length !== 6`, `{6}` in room-ID regex) and confirm zero occurrences outside `shared/constants.js`
-- [ ] T024 [P] Verify SC-004 — confirm each refactored component (`HomePage.jsx`, `RoomPage.jsx`, `Canvas.jsx`, `Toolbar.jsx`) contains no direct `import` from `../services/socket.js`
-- [ ] T025 [P] Verify SC-005 — confirm `client/tests/unit/useHomePage.test.js` and `client/tests/unit/useCanvasRenderer.test.js` exist and exercise hook logic without mounting a React component
+- [X] T021 Run complete test suite end-to-end: `cd server && npm test`, `cd client && npm test -- --run`, `cd e2e && npx playwright test` (requires server on :3001) — every test must pass; zero failures
+- [X] T022 [P] Verify SC-002 — search production source files (`client/src/`, `server/src/`, `shared/`) for bare string literals `'pen'`, `'eraser'`, `'Connected'`, `'Reconnecting'`, `'Disconnected'`, `'ROOM_NOT_FOUND'`, `'SERVER_ERROR'` and confirm zero occurrences outside `shared/constants.js`
+- [X] T023 [P] Verify SC-003 — search production source files for numeric literal `6` used as room-ID length (e.g., `length !== 6`, `{6}` in room-ID regex) and confirm zero occurrences outside `shared/constants.js`
+- [X] T024 [P] Verify SC-004 — confirm each refactored component (`HomePage.jsx`, `RoomPage.jsx`, `Canvas.jsx`, `Toolbar.jsx`) contains no direct `import` from `../services/socket.js`
+- [X] T025 [P] Verify SC-005 — confirm `client/tests/unit/useHomePage.test.js` and `client/tests/unit/useCanvasRenderer.test.js` exist and exercise hook logic without mounting a React component
 
 ---
 

@@ -1,4 +1,4 @@
-import { EVENTS, SERVER_EVENTS, OP_TYPE } from 'shared/constants.js';
+import { EVENTS, SERVER_EVENTS, OP_TYPE, ERROR_CODES } from 'shared/constants.js';
 import {
   createRoom,
   getRoom,
@@ -41,7 +41,7 @@ export function registerHandlers(io) {
       } catch (err) {
         logger.error({ event: EVENTS.ROOM_CREATE, error: err.message });
         if (typeof ack === 'function') {
-          ack({ ok: false, error: 'SERVER_ERROR', message: 'Failed to generate room' });
+          ack({ ok: false, error: ERROR_CODES.SERVER_ERROR, message: 'Failed to generate room' });
         }
       }
     });
@@ -54,9 +54,9 @@ export function registerHandlers(io) {
 
       const room = getRoom(roomId);
       if (!room) {
-        logger.warn({ event: EVENTS.ROOM_JOIN, roomId, userId: session.userId, error: 'ROOM_NOT_FOUND' });
+        logger.warn({ event: EVENTS.ROOM_JOIN, roomId, userId: session.userId, error: ERROR_CODES.ROOM_NOT_FOUND });
         if (typeof ack === 'function') {
-          ack({ ok: false, error: 'ROOM_NOT_FOUND', message: `Room ${roomId} does not exist` });
+          ack({ ok: false, error: ERROR_CODES.ROOM_NOT_FOUND, message: `Room ${roomId} does not exist` });
         }
         return;
       }

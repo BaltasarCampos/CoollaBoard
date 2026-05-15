@@ -1,27 +1,27 @@
 import React, { useState } from 'react';
 import ConfirmDialog from './ConfirmDialog.jsx';
-import { emitClear } from '../services/socket.js';
+import { TOOL_NAMES } from 'shared/constants.js';
+import { clearCanvas } from '../hooks/useRoom.js';
 
-export default function Toolbar({ activeTool, onToolChange }) {
+export default function Toolbar({ activeTool, onToolChange, onClear = clearCanvas }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   function handleConfirmClear() {
-    const operationId = crypto.randomUUID();
-    emitClear(operationId);
+    onClear();
     setShowConfirm(false);
   }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem' }}>
       <button
-        onClick={() => onToolChange('pen')}
-        style={{ fontWeight: activeTool === 'pen' ? 'bold' : 'normal' }}
+        onClick={() => onToolChange(TOOL_NAMES.PEN)}
+        style={{ fontWeight: activeTool === TOOL_NAMES.PEN ? 'bold' : 'normal' }}
       >
         Pen
       </button>
       <button
-        onClick={() => onToolChange('eraser')}
-        style={{ fontWeight: activeTool === 'eraser' ? 'bold' : 'normal' }}
+        onClick={() => onToolChange(TOOL_NAMES.ERASER)}
+        style={{ fontWeight: activeTool === TOOL_NAMES.ERASER ? 'bold' : 'normal' }}
       >
         Eraser
       </button>

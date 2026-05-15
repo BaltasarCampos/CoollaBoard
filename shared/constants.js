@@ -35,3 +35,22 @@ export const OP_TYPE = {
   ERASE: 'ERASE',
   CLEAR: 'CLEAR',
 };
+
+// Named identifiers for drawing tools
+export const TOOL_NAMES = {
+  PEN:    'pen',
+  ERASER: 'eraser',
+};
+
+// Display labels for WebSocket connection states
+export const CONNECTION_STATUS = {
+  CONNECTED:    'Connected',
+  RECONNECTING: 'Reconnecting',
+  DISCONNECTED: 'Disconnected',
+};
+
+// Machine-readable error code strings used in socket acknowledgement payloads
+export const ERROR_CODES = {
+  ROOM_NOT_FOUND: 'ROOM_NOT_FOUND',
+  SERVER_ERROR:   'SERVER_ERROR',
+};

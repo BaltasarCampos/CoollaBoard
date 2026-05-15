@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import ConnectionStatus from './ConnectionStatus.jsx';
 import Canvas from './Canvas.jsx';
 import Toolbar from './Toolbar.jsx';
-import { getSocket, joinRoom } from '../services/socket.js';
-import { SERVER_EVENTS } from 'shared/constants.js';
+import { useRoom } from '../hooks/useRoom.js';
+import { TOOL_NAMES } from 'shared/constants.js';
 
 export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperations = [] }) {
-  const [activeTool, setActiveTool] = useState('pen');
+  const [activeTool, setActiveTool] = useState(TOOL_NAMES.PEN);
   const [operations, setOperations] = useState(initialOperations);
 
   const addOperations = useCallback((ops) => {
@@ -17,38 +17,15 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
     });
   }, []);
 
-  // Delta-hydration on reconnect: re-join with lastSequence to get missed ops
-  useEffect(() => {
-    const socket = getSocket();
-
-    async function onReconnect() {
-      try {
-        setOperations((prev) => {
-          const lastSequence = prev.reduce((max, op) => Math.max(max, op.sequenceNumber ?? 0), 0);
-          // Fire the rejoin asynchronously outside the state updater
-          joinRoom(roomId, lastSequence || undefined)
-            .then(({ operations: delta }) => {
-              if (delta.length) addOperations(delta);
-            })
-            .catch(() => onLeaveRoom('room no longer exists'));
-          return prev;
-        });
-      } catch {
-        onLeaveRoom('room no longer exists');
-      }
-    }
-
-    function onRoomError(data) {
-      if (data?.error === 'ROOM_NOT_FOUND') onLeaveRoom('room no longer exists');
-    }
-
-    socket.on('reconnect', onReconnect);
-    socket.on(SERVER_EVENTS.ROOM_ERROR, onRoomError);
-    return () => {
-      socket.off('reconnect', onReconnect);
-      socket.off(SERVER_EVENTS.ROOM_ERROR, onRoomError);
-    };
-  }, [roomId, addOperations, onLeaveRoom]);
+  const { handleClear } = useRoom({
+    roomId,
+    userId,
+    onRoomJoined: () => {},
+    onLeaveRoom,
+    addOperations,
+    operations,
+    skipInitialJoin: true,
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -60,7 +37,7 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
         borderBottom: '1px solid #ddd',
       }}>
         <span data-testid="room-id" style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{roomId}</span>
-        <Toolbar activeTool={activeTool} onToolChange={setActiveTool} />
+        <Toolbar activeTool={activeTool} onToolChange={setActiveTool} onClear={handleClear} />
         <button onClick={() => onLeaveRoom('')}>Leave</button>
       </div>
 
