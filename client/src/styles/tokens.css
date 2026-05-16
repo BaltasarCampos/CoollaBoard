@@ -1,0 +1,73 @@
+/* ============================================================
+   Design Token System — CoollaBoard
+   Two-tier: Primitives → Semantic tokens
+   Imported once at app entry (main.jsx)
+   ============================================================ */
+
+:root {
+  /* --- Color Primitives --- */
+  --indigo-600: #5c6bc0;
+  --indigo-700: #3949ab;
+  --gray-50: #f8f9fa;
+  --gray-100: #f1f3f4;
+  --gray-200: #e0e0e0;
+  --gray-600: #616161;
+  --gray-900: #212121;
+  --white: #ffffff;
+  --green-600: #4caf50;
+  --orange-500: #ff9800;
+  --red-500: #f44336;
+  --yellow-100: #fff3cd;
+  --yellow-400: #ffc107;
+
+  /* --- Color: Brand --- */
+  --color-primary: var(--indigo-600);
+  --color-primary-hover: var(--indigo-700);
+  --color-primary-ring: rgba(92, 107, 192, 0.15);
+
+  /* --- Color: Surface & Text --- */
+  --color-surface: var(--gray-50);
+  --color-surface-card: var(--white);
+  --color-surface-input: var(--gray-100);
+  --color-border: var(--gray-200);
+  --color-text-primary: var(--gray-900);
+  --color-text-secondary: var(--gray-600);
+  --color-text-on-primary: var(--white);
+
+  /* --- Color: Status --- */
+  --color-status-connected: var(--green-600);
+  --color-status-reconnecting: var(--orange-500);
+  --color-status-disconnected: var(--red-500);
+
+  /* --- Color: Messages --- */
+  --color-message-error: var(--red-500);
+  --color-message-warning: var(--orange-500);
+
+  /* --- Color: Warning Surface --- */
+  --color-warning-surface: var(--yellow-100);
+  --color-warning-border: var(--yellow-400);
+
+  /* --- Spacing --- */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+
+  /* --- Typography --- */
+  --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-size-sm: 0.75rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 2rem;
+  --font-weight-normal: 400;
+  --font-weight-bold: 600;
+  --line-height-base: 1.5;
+
+  /* --- Shape --- */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12);
+}

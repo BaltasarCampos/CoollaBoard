@@ -1,0 +1,25 @@
+/* ConnectionStatus component styles */
+
+.connection-status {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-primary);
+  z-index: 9999;
+}
+
+.connection-status--connected {
+  background-color: var(--color-status-connected);
+}
+
+.connection-status--reconnecting {
+  background-color: var(--color-status-reconnecting);
+}
+
+.connection-status--disconnected {
+  background-color: var(--color-status-disconnected);
+}

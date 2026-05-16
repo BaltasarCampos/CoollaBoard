@@ -3,8 +3,6 @@ import {
   createRoom,
   joinRoom,
   getSocket,
-  onConnectionStatus,
-  offConnectionStatus,
   emitClear,
 } from '../services/socket.js';
 import { SERVER_EVENTS, ERROR_CODES } from 'shared/constants.js';

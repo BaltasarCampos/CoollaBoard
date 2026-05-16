@@ -39,4 +39,28 @@ describe('ConnectionStatus', () => {
     act(() => statusCallback('Disconnected'));
     expect(screen.getByText('Disconnected')).toBeInTheDocument();
   });
+
+  it('applies base connection-status class to element', () => {
+    render(<ConnectionStatus />);
+    act(() => statusCallback('Connected'));
+    expect(screen.getByTestId('connection-status')).toHaveClass('connection-status');
+  });
+
+  it('applies connection-status--connected class when connected', () => {
+    render(<ConnectionStatus />);
+    act(() => statusCallback('Connected'));
+    expect(screen.getByTestId('connection-status')).toHaveClass('connection-status--connected');
+  });
+
+  it('applies connection-status--reconnecting class when reconnecting', () => {
+    render(<ConnectionStatus />);
+    act(() => statusCallback('Reconnecting'));
+    expect(screen.getByTestId('connection-status')).toHaveClass('connection-status--reconnecting');
+  });
+
+  it('applies connection-status--disconnected class when disconnected', () => {
+    render(<ConnectionStatus />);
+    act(() => statusCallback('Disconnected'));
+    expect(screen.getByTestId('connection-status')).toHaveClass('connection-status--disconnected');
+  });
 });
