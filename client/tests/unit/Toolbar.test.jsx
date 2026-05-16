@@ -39,4 +39,24 @@ describe('Toolbar + ConfirmDialog (Clear Canvas)', () => {
     expect(socketService.emitClear).not.toHaveBeenCalled();
     expect(screen.queryByText(/are you sure/i)).not.toBeInTheDocument();
   });
+
+  it('active Pen tool button has toolbar__btn--active class', () => {
+    render(<Toolbar activeTool="pen" onToolChange={onToolChange} />);
+    const penBtn = screen.getByRole('button', { name: /pen/i });
+    expect(penBtn).toHaveClass('toolbar__btn--active');
+  });
+
+  it('inactive Eraser button does not have toolbar__btn--active class', () => {
+    render(<Toolbar activeTool="pen" onToolChange={onToolChange} />);
+    const eraserBtn = screen.getByRole('button', { name: /eraser/i });
+    expect(eraserBtn).not.toHaveClass('toolbar__btn--active');
+  });
+
+  it('all tool buttons have base toolbar__btn class', () => {
+    render(<Toolbar activeTool="pen" onToolChange={onToolChange} />);
+    const penBtn = screen.getByRole('button', { name: /pen/i });
+    const eraserBtn = screen.getByRole('button', { name: /eraser/i });
+    expect(penBtn).toHaveClass('toolbar__btn');
+    expect(eraserBtn).toHaveClass('toolbar__btn');
+  });
 });

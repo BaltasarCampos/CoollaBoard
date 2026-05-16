@@ -1,0 +1,29 @@
+/* HomePage component styles */
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-lg);
+  gap: var(--spacing-md);
+  background-color: var(--color-surface);
+}
+
+.home-page__message--warning {
+  color: var(--color-message-warning);
+}
+
+.home-page__message--error {
+  color: var(--color-message-error);
+}
+
+.home-page__divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.home-page__join-row {
+  display: flex;
+  gap: var(--spacing-sm);
+}

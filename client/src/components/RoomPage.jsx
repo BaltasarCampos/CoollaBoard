@@ -4,6 +4,7 @@ import Canvas from './Canvas.jsx';
 import Toolbar from './Toolbar.jsx';
 import { useRoom } from '../hooks/useRoom.js';
 import { TOOL_NAMES } from 'shared/constants.js';
+import '../styles/components/roompage.css';
 
 export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperations = [] }) {
   const [activeTool, setActiveTool] = useState(TOOL_NAMES.PEN);
@@ -28,20 +29,14 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0.5rem 1rem',
-        borderBottom: '1px solid #ddd',
-      }}>
-        <span data-testid="room-id" style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{roomId}</span>
+    <div className="room-page">
+      <div className="room-page__header">
+        <span data-testid="room-id" className="room-page__room-id">{roomId}</span>
         <Toolbar activeTool={activeTool} onToolChange={setActiveTool} onClear={handleClear} />
-        <button onClick={() => onLeaveRoom('')}>Leave</button>
+        <button className="btn" onClick={() => onLeaveRoom('')}>Leave</button>
       </div>
 
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div className="room-page__canvas-area">
         <Canvas
           activeTool={activeTool}
           roomId={roomId}

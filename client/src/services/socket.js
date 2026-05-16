@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client';
-import { EVENTS, SERVER_EVENTS, CONNECTION_STATUS, ERROR_CODES } from 'shared/constants.js';
+import { EVENTS, CONNECTION_STATUS, ERROR_CODES } from 'shared/constants.js';
 
 const socket = io('http://localhost:3001', {
   autoConnect: true,
