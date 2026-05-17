@@ -20,9 +20,27 @@ export const VIRTUAL_WIDTH  = 1920;
 export const VIRTUAL_HEIGHT = 1080;
 
 // Tool defaults
-export const BRUSH_WIDTH   = 4;          // virtual units
-export const ERASER_RADIUS = 20;         // virtual units
-export const STROKE_COLOR  = '#000000';
+export const ERASER_RADIUS      = 20;         // virtual units
+export const DEFAULT_STROKE_COLOR = '#111111';
+export const DEFAULT_BRUSH_WIDTH  = 4;
+
+// Color palette and brush size presets
+export const STROKE_PALETTE = [
+  '#111111',
+  '#ffffff',
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#3b82f6',
+  '#a855f7',
+];
+
+export const BRUSH_PRESETS = [
+  { label: 'S', value: 2 },
+  { label: 'M', value: 4 },
+  { label: 'L', value: 8 },
+];
 
 // Room
 export const ROOM_ID_LENGTH       = 6;

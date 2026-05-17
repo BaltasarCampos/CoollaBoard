@@ -3,11 +3,13 @@ import ConnectionStatus from './ConnectionStatus.jsx';
 import Canvas from './Canvas.jsx';
 import Toolbar from './Toolbar.jsx';
 import { useRoom } from '../hooks/useRoom.js';
-import { TOOL_NAMES } from 'shared/constants.js';
+import { TOOL_NAMES, DEFAULT_STROKE_COLOR, DEFAULT_BRUSH_WIDTH } from 'shared/constants.js';
 import '../styles/components/roompage.css';
 
 export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperations = [] }) {
   const [activeTool, setActiveTool] = useState(TOOL_NAMES.PEN);
+  const [color, setColor] = useState(DEFAULT_STROKE_COLOR);
+  const [brushSize, setBrushSize] = useState(DEFAULT_BRUSH_WIDTH);
   const [operations, setOperations] = useState(initialOperations);
 
   const addOperations = useCallback((ops) => {
@@ -32,7 +34,7 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
     <div className="room-page">
       <div className="room-page__header">
         <span data-testid="room-id" className="room-page__room-id">{roomId}</span>
-        <Toolbar activeTool={activeTool} onToolChange={setActiveTool} onClear={handleClear} />
+        <Toolbar activeTool={activeTool} onToolChange={setActiveTool} onClear={handleClear} color={color} onColorChange={setColor} brushSize={brushSize} onBrushSizeChange={setBrushSize} />
         <button className="btn" onClick={() => onLeaveRoom('')}>Leave</button>
       </div>
 
@@ -42,6 +44,8 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
           roomId={roomId}
           userId={userId}
           initialOperations={operations}
+          color={color}
+          brushSize={brushSize}
         />
       </div>
 

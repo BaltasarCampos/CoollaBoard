@@ -28,13 +28,15 @@ describe('penTool', () => {
     tool.onPointerDown({ offsetX: 100, offsetY: 100 }, canvas);
     tool.onPointerMove({ offsetX: 110, offsetY: 110 }, canvas);
     tool.onPointerMove({ offsetX: 120, offsetY: 120 }, canvas);
-    const localOp = tool.onPointerUp({ offsetX: 130, offsetY: 130 }, canvas);
+    const localOp = tool.onPointerUp({ offsetX: 130, offsetY: 130 }, canvas, '#3b82f6', 4);
 
     expect(socketService.emitStroke).toHaveBeenCalledTimes(1);
-    const [opId, type, points] = socketService.emitStroke.mock.calls[0];
+    const [opId, type, points, color, brushSize] = socketService.emitStroke.mock.calls[0];
     expect(type).toBe('DRAW');
     expect(points.length).toBeGreaterThanOrEqual(2);
     expect(opId).toMatch(/^[0-9a-f-]{36}$/); // UUID v4
+    expect(color).toBe('#3b82f6');
+    expect(typeof brushSize).toBe('number');
   });
 
   it('emits type DRAW', () => {
@@ -48,12 +50,25 @@ describe('penTool', () => {
   it('returns a local operation for optimistic render', () => {
     tool.onPointerDown({ offsetX: 0, offsetY: 0 }, canvas);
     tool.onPointerMove({ offsetX: 5, offsetY: 5 }, canvas);
-    const op = tool.onPointerUp({ offsetX: 10, offsetY: 10 }, canvas);
+    const op = tool.onPointerUp({ offsetX: 10, offsetY: 10 }, canvas, '#111111', 4);
 
     expect(op).not.toBeNull();
     expect(op.type).toBe('DRAW');
     expect(op.operationId).toBeTruthy();
     expect(op.points.length).toBeGreaterThanOrEqual(2);
+    expect(op.color).toBe('#111111');
+    expect(op.brushSize).toBe(4);
+  });
+
+  it('passes color and brushSize to emitStroke and returned op', () => {
+    tool.onPointerDown({ offsetX: 0, offsetY: 0 }, canvas);
+    tool.onPointerMove({ offsetX: 5, offsetY: 5 }, canvas);
+    const op = tool.onPointerUp({ offsetX: 10, offsetY: 10 }, canvas, '#ef4444', 8);
+
+    expect(socketService.emitStroke.mock.calls[0][3]).toBe('#ef4444');
+    expect(socketService.emitStroke.mock.calls[0][4]).toBe(8);
+    expect(op.color).toBe('#ef4444');
+    expect(op.brushSize).toBe(8);
   });
 
   it('does not emit if only pointerdown with no move (single tap — < 2 points)', () => {

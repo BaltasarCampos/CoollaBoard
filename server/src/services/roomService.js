@@ -96,6 +96,8 @@ export function addOperation(roomId, op) {
     type: op.type,
     userId: op.userId,
     points: op.points ?? [],
+    color: op.color,
+    brushSize: op.brushSize,
     timestamp: Date.now(),
   };
 

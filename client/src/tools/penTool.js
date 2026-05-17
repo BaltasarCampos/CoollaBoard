@@ -19,7 +19,7 @@ export function createPenTool() {
     points.push(v);
   }
 
-  function onPointerUp(event, canvasEl) {
+  function onPointerUp(event, canvasEl, color, brushSize) {
     if (!drawing) return null;
     drawing = false;
 
@@ -33,9 +33,9 @@ export function createPenTool() {
     const snapshot = [...points];
     points = [];
 
-    emitStroke(operationId, OP_TYPE.DRAW, snapshot);
+    emitStroke(operationId, OP_TYPE.DRAW, snapshot, color, brushSize);
 
-    return { operationId, type: OP_TYPE.DRAW, points: snapshot };
+    return { operationId, type: OP_TYPE.DRAW, points: snapshot, color, brushSize };
   }
 
   return { onPointerDown, onPointerMove, onPointerUp };
