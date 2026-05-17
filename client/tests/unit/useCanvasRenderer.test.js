@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRef } from 'react';
-import { OP_TYPE } from 'shared/constants.js';
+import { OP_TYPE, DEFAULT_STROKE_COLOR, DEFAULT_BRUSH_WIDTH } from 'shared/constants.js';
 
 // Stub ResizeObserver
 const resizeCallbacks = [];
@@ -149,5 +149,45 @@ describe('useCanvasRenderer hook', () => {
     rerender({ ops: ops2 });
     act(() => flushRaf());
     expect(mockCtx.clearRect.mock.calls.length).toBeGreaterThan(callsAfterFirst);
+  });
+
+  it('renderDraw uses op.color for ctx.strokeStyle', () => {
+    const ops = [
+      { operationId: 'op1', type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 100, y: 100 }], color: '#ef4444', sequenceNumber: 1, userId: 'u', timestamp: 0 },
+    ];
+    const canvasRef = makeRef(canvas);
+    renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops));
+    act(() => flushRaf());
+    expect(mockCtx.strokeStyle).toBe('#ef4444');
+  });
+
+  it('renderDraw falls back to DEFAULT_STROKE_COLOR when op.color is undefined', () => {
+    const ops = [
+      { operationId: 'op2', type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 100, y: 100 }], sequenceNumber: 1, userId: 'u', timestamp: 0 },
+    ];
+    const canvasRef = makeRef(canvas);
+    renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops));
+    act(() => flushRaf());
+    expect(mockCtx.strokeStyle).toBe(DEFAULT_STROKE_COLOR);
+  });
+
+  it('renderDraw uses op.brushSize for ctx.lineWidth', () => {
+    const ops = [
+      { operationId: 'op3', type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 100, y: 100 }], brushSize: 8, sequenceNumber: 1, userId: 'u', timestamp: 0 },
+    ];
+    const canvasRef = makeRef(canvas);
+    renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops));
+    act(() => flushRaf());
+    expect(mockCtx.lineWidth).toBe(8);
+  });
+
+  it('renderDraw falls back to DEFAULT_BRUSH_WIDTH when op.brushSize is undefined', () => {
+    const ops = [
+      { operationId: 'op4', type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 100, y: 100 }], sequenceNumber: 1, userId: 'u', timestamp: 0 },
+    ];
+    const canvasRef = makeRef(canvas);
+    renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops));
+    act(() => flushRaf());
+    expect(mockCtx.lineWidth).toBe(DEFAULT_BRUSH_WIDTH);
   });
 });

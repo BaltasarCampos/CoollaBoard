@@ -144,4 +144,78 @@ describe('draw:stroke handler', () => {
 
     client.disconnect();
   });
+
+  it('stores color and brushSize in room operations when provided', async () => {
+    const client = makeClient();
+    await waitForConnect(client);
+    const { roomId } = await emitWithAck(client, EVENTS.ROOM_CREATE, {});
+    await emitWithAck(client, EVENTS.ROOM_JOIN, { roomId });
+
+    client.emit(EVENTS.DRAW_STROKE, {
+      operationId: crypto.randomUUID(),
+      type: OP_TYPE.DRAW,
+      points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+      color: '#3b82f6',
+      brushSize: 8,
+    });
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    const ack = await emitWithAck(client, EVENTS.ROOM_JOIN, { roomId });
+    expect(ack.operations[0].color).toBe('#3b82f6');
+    expect(ack.operations[0].brushSize).toBe(8);
+
+    client.disconnect();
+  });
+
+  it('draw:broadcast includes color and brushSize when provided', async () => {
+    const sender = makeClient();
+    const receiver = makeClient();
+    await waitForConnect(sender);
+    await waitForConnect(receiver);
+
+    const { roomId } = await emitWithAck(sender, EVENTS.ROOM_CREATE, {});
+    await emitWithAck(sender, EVENTS.ROOM_JOIN, { roomId });
+    await emitWithAck(receiver, EVENTS.ROOM_JOIN, { roomId });
+
+    const broadcastReceived = new Promise((resolve) => {
+      receiver.once(SERVER_EVENTS.DRAW_BROADCAST, resolve);
+    });
+
+    sender.emit(EVENTS.DRAW_STROKE, {
+      operationId: crypto.randomUUID(),
+      type: OP_TYPE.DRAW,
+      points: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      color: '#22c55e',
+      brushSize: 2,
+    });
+
+    const broadcast = await broadcastReceived;
+    expect(broadcast.color).toBe('#22c55e');
+    expect(broadcast.brushSize).toBe(2);
+
+    sender.disconnect();
+    receiver.disconnect();
+  });
+
+  it('stores stroke without color or brushSize (undefined fields — backward compatibility)', async () => {
+    const client = makeClient();
+    await waitForConnect(client);
+    const { roomId } = await emitWithAck(client, EVENTS.ROOM_CREATE, {});
+    await emitWithAck(client, EVENTS.ROOM_JOIN, { roomId });
+
+    client.emit(EVENTS.DRAW_STROKE, {
+      operationId: crypto.randomUUID(),
+      type: OP_TYPE.DRAW,
+      points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+    });
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    const ack = await emitWithAck(client, EVENTS.ROOM_JOIN, { roomId });
+    expect(ack.operations[0].color).toBeUndefined();
+    expect(ack.operations[0].brushSize).toBeUndefined();
+
+    client.disconnect();
+  });
 });

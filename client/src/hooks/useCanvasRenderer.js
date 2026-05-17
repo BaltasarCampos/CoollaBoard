@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { toScreen } from '../utils/coordinates.js';
-import { VIRTUAL_WIDTH, BRUSH_WIDTH, ERASER_RADIUS, STROKE_COLOR, OP_TYPE } from 'shared/constants.js';
+import { VIRTUAL_WIDTH, ERASER_RADIUS, DEFAULT_STROKE_COLOR, DEFAULT_BRUSH_WIDTH, OP_TYPE } from 'shared/constants.js';
 
 export function useCanvasRenderer(canvasRef, operations, getVisibleOperations) {
   const dirtyRef = useRef(true);
@@ -54,8 +54,8 @@ export function useCanvasRenderer(canvasRef, operations, getVisibleOperations) {
 function renderDraw(ctx, op, canvas) {
   if (!op.points || op.points.length < 2) return;
   ctx.save();
-  ctx.strokeStyle = STROKE_COLOR;
-  ctx.lineWidth = BRUSH_WIDTH;
+  ctx.strokeStyle = op.color ?? DEFAULT_STROKE_COLOR;
+  ctx.lineWidth = op.brushSize ?? DEFAULT_BRUSH_WIDTH;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();

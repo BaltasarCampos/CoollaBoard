@@ -38,3 +38,35 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+.toolbar__color-swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.toolbar__color-swatch--active {
+  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.toolbar__size-btn {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.toolbar__size-btn--active {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+}

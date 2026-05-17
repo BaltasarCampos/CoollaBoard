@@ -8,7 +8,7 @@ import { TOOL_NAMES } from 'shared/constants.js';
 const penTool    = createPenTool();
 const eraserTool = createEraserTool();
 
-export default function Canvas({ activeTool, userId, roomId, initialOperations = [] }) {
+export default function Canvas({ activeTool, userId, roomId, initialOperations = [], color, brushSize }) {
   const canvasRef = useRef(null);
   const { operations, addOperation, getVisibleOperations } = useCanvas();
 
@@ -36,10 +36,10 @@ export default function Canvas({ activeTool, userId, roomId, initialOperations =
   const handlePointerUp = useCallback((e) => {
     const canvas = canvasRef.current;
     let localOp = null;
-    if (activeTool === TOOL_NAMES.PEN)    localOp = penTool.onPointerUp(e.nativeEvent, canvas);
+    if (activeTool === TOOL_NAMES.PEN)    localOp = penTool.onPointerUp(e.nativeEvent, canvas, color, brushSize);
     if (activeTool === TOOL_NAMES.ERASER) localOp = eraserTool.onPointerUp(e.nativeEvent, canvas);
     if (localOp) addOperation({ ...localOp, sequenceNumber: Date.now(), userId, timestamp: Date.now() });
-  }, [activeTool, addOperation, userId]);
+  }, [activeTool, addOperation, userId, color, brushSize]);
 
   return (
     <canvas

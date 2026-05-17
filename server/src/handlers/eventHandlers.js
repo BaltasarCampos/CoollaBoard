@@ -88,7 +88,7 @@ export function registerHandlers(io) {
       const session = sessions.get(socket.id);
       if (!session?.roomId) return;
 
-      const { operationId, type, points } = payload || {};
+      const { operationId, type, points, color, brushSize } = payload || {};
       if (!operationId || ![OP_TYPE.DRAW, OP_TYPE.ERASE].includes(type) || !Array.isArray(points)) return;
 
       const fullOp = addOperation(session.roomId, {
@@ -96,6 +96,8 @@ export function registerHandlers(io) {
         type,
         userId: session.userId,
         points,
+        color,
+        brushSize,
       });
 
       if (!fullOp) return; // duplicate or invalid room
@@ -108,6 +110,8 @@ export function registerHandlers(io) {
         userId: session.userId,
         operationId,
         type,
+        color,
+        brushSize,
         durationMs: Date.now() - start,
       });
     });

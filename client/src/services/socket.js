@@ -55,8 +55,8 @@ export function joinRoom(roomId, lastSequence) {
   });
 }
 
-export function emitStroke(operationId, type, points) {
-  socket.emit(EVENTS.DRAW_STROKE, { operationId, type, points });
+export function emitStroke(operationId, type, points, color, brushSize) {
+  socket.emit(EVENTS.DRAW_STROKE, { operationId, type, points, color, brushSize });
 }
 
 export function emitClear(operationId) {
