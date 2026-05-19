@@ -113,3 +113,58 @@ test.describe('Real-time drawing sync', () => {
     await ctx3.close();
   });
 });
+
+test.describe('Live stroke preview (US1 + US2)', () => {
+  test('in-progress stroke appears on remote canvas before pointer-up', async ({ browser }) => {
+    const ctx1 = await browser.newContext();
+    const ctx2 = await browser.newContext();
+    const page1 = await ctx1.newPage();
+    const page2 = await ctx2.newPage();
+
+    await page1.goto('/');
+    await page1.getByRole('button', { name: /create room/i }).click();
+    await page1.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+    const roomId = await page1.locator('[data-testid="room-id"]').textContent();
+
+    await page2.goto('/');
+    await page2.getByPlaceholder(/room id/i).fill(roomId);
+    await page2.getByRole('button', { name: /join room/i }).click();
+    await page2.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+
+    // Start drawing in page1 but do NOT release the pointer yet
+    const canvas1 = page1.locator('canvas').first();
+    await canvas1.hover({ position: { x: 100, y: 100 } });
+    await page1.mouse.down();
+
+    // Move the pointer across the canvas (generates stroke:preview events)
+    for (let x = 100; x <= 400; x += 20) {
+      await page1.mouse.move(x, 200);
+      await page1.waitForTimeout(40); // > 30 ms throttle interval
+    }
+
+    // Before pointer-up, verify the preview overlay canvas in page2 has pixels
+    await page2.waitForTimeout(300);
+    const previewPixel = await page2.locator('canvas').nth(1).evaluate((el) => {
+      const ctx = el.getContext('2d');
+      // Sample a point along the expected path
+      const d = ctx.getImageData(200, 200, 1, 1).data;
+      return d[3]; // alpha channel
+    });
+    expect(previewPixel).toBeGreaterThan(0);
+
+    // Release pointer — committed stroke should appear on the main canvas
+    await page1.mouse.up();
+    await page2.waitForTimeout(500);
+
+    const committedPixel = await page2.locator('canvas').first().evaluate((el) => {
+      const ctx = el.getContext('2d');
+      const d = ctx.getImageData(200, 200, 1, 1).data;
+      return d[3];
+    });
+    expect(committedPixel).toBeGreaterThan(0);
+
+    await ctx1.close();
+    await ctx2.close();
+  });
+});
+

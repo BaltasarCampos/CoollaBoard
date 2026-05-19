@@ -62,3 +62,11 @@ export function emitStroke(operationId, type, points, color, brushSize) {
 export function emitClear(operationId) {
   socket.emit(EVENTS.CANVAS_CLEAR, { operationId });
 }
+
+export function emitStrokePreview(payload) {
+  socket.emit(EVENTS.STROKE_PREVIEW, payload);
+}
+
+export function emitStrokeCancel(payload) {
+  socket.emit(EVENTS.STROKE_CANCEL, payload);
+}

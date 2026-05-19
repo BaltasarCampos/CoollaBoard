@@ -191,3 +191,125 @@ describe('useCanvasRenderer hook', () => {
     expect(mockCtx.lineWidth).toBe(DEFAULT_BRUSH_WIDTH);
   });
 });
+
+// ── Preview Layer Rendering (US1) ──────────────────────────────────────────────
+
+describe('useCanvasRenderer — preview canvas (US1)', () => {
+  let mainCanvas;
+  let previewCanvas;
+  const previewCtx = {
+    clearRect: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
+    fill: vi.fn(),
+    rect: vi.fn(),
+    strokeStyle: '',
+    lineWidth: 0,
+    lineCap: '',
+    lineJoin: '',
+    globalAlpha: 1,
+    fillStyle: '',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rafCallback = null;
+    mainCanvas = {
+      getContext: vi.fn(() => mockCtx),
+      width: 800,
+      height: 600,
+      clientWidth: 800,
+      clientHeight: 600,
+    };
+    previewCanvas = {
+      getContext: vi.fn(() => previewCtx),
+      width: 800,
+      height: 600,
+      clientWidth: 800,
+      clientHeight: 600,
+    };
+  });
+
+  function makeRef(el) {
+    return { current: el };
+  }
+
+  it('renderer accepts previewCanvasRef and previews as additional params', () => {
+    const ops = [];
+    const previews = new Map();
+    const canvasRef = makeRef(mainCanvas);
+    const previewCanvasRef = makeRef(previewCanvas);
+
+    // Should not throw
+    expect(() => {
+      renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops, previewCanvasRef, previews));
+    }).not.toThrow();
+  });
+
+  it('overlay canvas is cleared at the start of each dirty frame with preview entries', () => {
+    const ops = [];
+    const previews = new Map([
+      ['op1', { operationId: 'op1', type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], color: '#111111', brushSize: 4 }],
+    ]);
+    const canvasRef = makeRef(mainCanvas);
+    const previewCanvasRef = makeRef(previewCanvas);
+
+    renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops, previewCanvasRef, previews));
+
+    act(() => flushRaf());
+
+    expect(previewCtx.clearRect).toHaveBeenCalledWith(0, 0, previewCanvas.width, previewCanvas.height);
+  });
+
+  it('a DRAW preview entry causes stroke rendering on the preview canvas', () => {
+    const ops = [];
+    const previews = new Map([
+      ['op1', { operationId: 'op1', type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 100, y: 100 }], color: '#3b82f6', brushSize: 4 }],
+    ]);
+    const canvasRef = makeRef(mainCanvas);
+    const previewCanvasRef = makeRef(previewCanvas);
+
+    renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops, previewCanvasRef, previews));
+
+    act(() => flushRaf());
+
+    expect(previewCtx.stroke).toHaveBeenCalled();
+    expect(previewCtx.strokeStyle).toBe('#3b82f6');
+  });
+
+  it('an ERASE preview entry renders a visible indicator (fill/stroke) on the preview canvas', () => {
+    const ops = [];
+    const previews = new Map([
+      ['op2', { operationId: 'op2', type: OP_TYPE.ERASE, points: [{ x: 100, y: 100 }] }],
+    ]);
+    const canvasRef = makeRef(mainCanvas);
+    const previewCanvasRef = makeRef(previewCanvas);
+
+    renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops, previewCanvasRef, previews));
+
+    act(() => flushRaf());
+
+    // clearRect called once for the full canvas clear; erase preview uses fill+stroke, not clearRect
+    expect(previewCtx.clearRect).toHaveBeenCalledTimes(1);
+    expect(previewCtx.fill).toHaveBeenCalled();
+  });
+
+  it('empty previews map clears the overlay but makes no paint calls', () => {
+    const ops = [];
+    const previews = new Map();
+    const canvasRef = makeRef(mainCanvas);
+    const previewCanvasRef = makeRef(previewCanvas);
+
+    renderHook(() => useCanvasRenderer(canvasRef, ops, () => ops, previewCanvasRef, previews));
+
+    act(() => flushRaf());
+
+    expect(previewCtx.clearRect).toHaveBeenCalledTimes(1);
+    expect(previewCtx.stroke).not.toHaveBeenCalled();
+    expect(previewCtx.fill).not.toHaveBeenCalled();
+  });
+});
