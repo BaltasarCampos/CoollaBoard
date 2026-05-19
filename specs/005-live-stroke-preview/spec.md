@@ -19,8 +19,9 @@ As a user drawing on the shared canvas, I see my stroke appear incrementally on 
 
 1. **Given** the pen tool is selected and the user presses the pointer down on the canvas, **When** the user moves the pointer without releasing, **Then** a stroke segment is drawn on the canvas following the pointer position in real time.
 2. **Given** an in-progress stroke is visible, **When** the user releases the pointer, **Then** the in-progress stroke is replaced by the committed stroke seamlessly (no flicker or disappearance).
-3. **Given** an in-progress stroke is visible, **When** the pointer leaves the canvas bounds before release, **Then** the in-progress stroke is cancelled — the preview is removed and no commit is emitted.
-4. **Given** the eraser tool is selected, **When** the user drags the pointer, **Then** the erased area is reflected in real time (same in-progress rendering behavior applies).
+3. **Given** an in-progress stroke is visible, **When** the pointer leaves the canvas bounds before release, **Then** point collection is paused and the current preview remains visible on the canvas; if the pointer re-enters the canvas, point collection resumes; the stroke is committed on pointer-up regardless of whether the pointer is inside or outside the canvas at the moment of release.
+4. **Given** an in-progress stroke is visible, **When** a pointer-cancel event fires (e.g., the browser interrupts the gesture), **Then** the in-progress stroke is cancelled — the preview is removed and no commit is emitted.
+5. **Given** the eraser tool is selected, **When** the user drags the pointer, **Then** the erased area is reflected in real time (same in-progress rendering behavior applies).
 
 ---
 
@@ -41,22 +42,6 @@ As a user in the same room watching another user draw, I see their stroke appear
 
 ---
 
-### User Story 3 - Distinguishable Remote Preview Visual Style (Priority: P3)
-
-As a user watching another user draw, I can visually distinguish that user's in-progress (uncommitted) stroke from fully committed strokes, so I can tell at a glance what is "live" versus permanent.
-
-**Why this priority**: Clarity of canvas state reduces confusion. This goes beyond MVP correctness, but is important for a collaborative whiteboard where temporary and permanent marks must be distinguishable.
-
-**Independent Test**: In a two-user room, have user A start a long drag; on user B's canvas the in-progress stroke should appear with a reduced opacity (or dashed style) compared to fully committed strokes.
-
-**Acceptance Scenarios**:
-
-1. **Given** a remote user's in-progress stroke is rendering on the local canvas, **When** viewed, **Then** it appears at reduced opacity (50–70%) relative to committed strokes.
-2. **Given** the in-progress stroke transitions to a committed stroke, **When** the commit arrives, **Then** the opacity immediately matches all other committed strokes (no animation required).
-3. **Given** no in-progress stroke exists from a remote user, **When** the committed stroke arrives, **Then** there is no visible opacity difference from other committed strokes.
-
----
-
 ### Edge Cases
 
 - What happens when the user draws a very fast stroke (few points captured before pointer up)? The commit event arrives immediately; the preview and commit must not cause a double-render.
@@ -64,6 +49,7 @@ As a user watching another user draw, I can visually distinguish that user's in-
 - What happens if a pointer up event is lost (e.g., focus change)? The in-progress stroke on the originating client is cleared. If the socket remains connected, no cancel is emitted and the remote preview lingers until the next pointer-down cycle or the user reconnects. Server-side timeout cleanup is **out of scope** for this feature — it requires a dedicated heartbeat/TTL mechanism not designed here. The disconnect cleanup (Principle VIII) handles the socket-drop case only.
 - What happens if a preview event arrives after the commit event for the same stroke? The commit takes precedence; the preview event is ignored for that operationId.
 - What happens when the canvas is cleared while an in-progress stroke is being sent? The in-progress preview is removed from all canvases, and any subsequent commit for that stroke is discarded.
+- What happens if the user releases the pointer while it is outside the canvas bounds? The pointer-up event is still delivered to the canvas because pointer capture is retained from pointer-down. The stroke is committed with all points accumulated before the pointer left the canvas; no points are added for travel outside the canvas bounds.
 
 ## Requirements *(mandatory)*
 
@@ -72,22 +58,23 @@ As a user watching another user draw, I can visually distinguish that user's in-
 - **FR-001**: The system MUST render the drawing user's in-progress stroke on their own canvas starting from the first pointer-move event after pointer-down. The local in-progress stroke MUST render at full opacity, visually identical to a committed stroke.
 - **FR-002**: The system MUST emit stroke-preview events to the server while the user is drawing (on pointer-move), containing the current accumulated points, color, and brush size.
 - **FR-003**: The server MUST broadcast received stroke-preview events to all other connected users in the same room, without persisting the preview as a permanent operation and without caching the preview in-memory. The server is a stateless relay for preview events.
-- **FR-004**: Remote clients MUST render in-progress stroke preview data received from the server on their canvas.
-- **FR-005**: Remote clients MUST render in-progress preview strokes at a visually reduced opacity (50–70%) relative to committed strokes. This reduced-opacity style applies only to previews of remote users; the local user's own in-progress stroke renders at full opacity (FR-001).
-- **FR-006**: When a stroke is committed (pointer-up), the system MUST emit the existing `draw:stroke` commit event, and all canvases (local and remote) MUST replace the in-progress preview with the committed stroke.
-- **FR-007**: In-progress preview strokes MUST NOT be persisted as permanent operations in the room's operation history on the server.
-- **FR-008**: Each in-progress preview MUST be identified by the same `operationId` used for the eventual commit, so clients can correlate preview and commit events for the same stroke.
-- **FR-009**: When a pointer-cancel or pointer-leave event ends a stroke without a commit, the system MUST emit a stroke-cancel event, and all canvases MUST remove the in-progress preview for that operationId.
-- **FR-010**: Preview rendering MUST NOT interfere with the committed operations layer; previews are rendered as a separate visual layer above committed content.
-- **FR-011**: The system MUST handle concurrent in-progress previews from multiple remote users simultaneously.
-- **FR-012**: If a commit event for a given `operationId` arrives at a remote client while a preview for that ID is still visible, the client MUST remove the preview and render the committed stroke.
-- **FR-013**: The eraser tool MUST also emit preview events during an in-progress erase operation so remote users see the erase area as it is being defined.
-- **FR-014**: On canvas clear, the system MUST discard all in-progress previews on every client in the room.
-- **FR-015**: The client MUST throttle outgoing stroke-preview events to at most one event per 30 ms (~33 updates/sec). Each emitted event carries the full accumulated points array up to that moment, so no intermediate points are permanently lost.
-
+- **FR-004**: Remote clients MUST render in-progress stroke preview data received from the server on their canvas at full opacity, visually identical to committed strokes.
+- **FR-005**: When a stroke is committed (pointer-up), the system MUST emit the existing `draw:stroke` commit event, and all canvases (local and remote) MUST replace the in-progress preview with the committed stroke. A pointer-up event MUST trigger a commit regardless of whether the pointer is inside or outside the canvas bounds at the moment of release.
+- **FR-006**: In-progress preview strokes MUST NOT be persisted as permanent operations in the room's operation history on the server.
+- **FR-007**: Each in-progress preview MUST be identified by the same `operationId` used for the eventual commit, so clients can correlate preview and commit events for the same stroke.
+- **FR-008**: When a pointer-cancel event ends a stroke without a commit, the system MUST emit a stroke-cancel event, and all canvases MUST remove the in-progress preview for that operationId. When the pointer leaves the canvas bounds mid-stroke, the client MUST pause point collection and MUST NOT emit a commit or cancel event; the existing in-progress preview MUST remain visible on all canvases. If the pointer re-enters the canvas bounds, point collection MUST resume. The stroke is committed normally on the subsequent pointer-up event regardless of current pointer position.
+- **FR-009**: Preview rendering MUST NOT interfere with the committed operations layer; previews are rendered as a separate visual layer above committed content.
+- **FR-010**: The system MUST handle concurrent in-progress previews from multiple remote users simultaneously.
+- **FR-011**: If a commit event for a given `operationId` arrives at a remote client while a preview for that ID is still visible, the client MUST remove the preview and render the committed stroke.
+- **FR-012**: The eraser tool MUST also emit preview events during an in-progress erase operation so remote users see the erase area as it is being defined.
+- **FR-013**: On canvas clear, the system MUST discard all in-progress previews on every client in the room.
+- **FR-014**: The client MUST throttle outgoing stroke-preview events to at most one event per 30 ms (~33 updates/sec). Each emitted event carries the full accumulated points array up to that moment, so no intermediate points are permanently lost.
+- **FR-015**: *(Reserved — intentionally skipped during spec authoring; requirement numbering continues at FR-016.)*
+- **FR-016**: The server MUST validate that the `userId` field in any incoming stroke-preview or stroke-cancel event matches the authenticated socket session identity. Events with a mismatched `userId` MUST be dropped silently without being relayed.
+- **FR-017**: When the server drops a stroke-preview or stroke-cancel event due to a `userId` mismatch (FR-016), it MUST emit a warning-level log entry including the `socketId` and the received `userId`.
 ### Key Entities
 
-- **StrokePreview**: A transient, non-persisted representation of an in-progress drawing action. Attributes: `operationId` (UUID, correlates with future commit), `userId`, `type` (DRAW or ERASE), `points` (accumulated array of virtual coordinates), `color`, `brushSize`.
+- **StrokePreview**: A transient, non-persisted representation of an in-progress drawing action. Attributes: `operationId` (UUID, generated by the client on pointer-down, correlates with future commit), `userId`, `type` (DRAW or ERASE), `points` (accumulated array of virtual coordinates), `color`, `brushSize`.
 - **PreviewRegistry**: A per-client in-memory map from `operationId` to the latest `StrokePreview` received for that user. Keyed by `operationId`; replaced on each new preview event for the same stroke; deleted on commit or cancel.
 
 ## Success Criteria *(mandatory)*
@@ -105,11 +92,19 @@ As a user watching another user draw, I can visually distinguish that user's in-
 
 ### Session 2026-05-17
 
-- Q: When the pointer leaves the canvas bounds mid-stroke (no pointer-up), should the stroke be committed or cancelled? → A: Cancelled — emit a stroke-cancel event, remove the preview, do not commit.
-- Q: Should the local user's own in-progress stroke render at reduced opacity or full opacity while drawing? → A: Full opacity — renders identically to a committed stroke.
+- Q: Should the server log a warning when a preview event is dropped due to a `userId` mismatch? → A: Yes — server logs a warning with `socketId` and received `userId` on every mismatch drop (FR-017).
+- Q: Should the server validate that the `userId` in a preview event matches the sender's socket identity before relaying? → A: Yes — server validates `userId` against the socket session; mismatched events are dropped silently (FR-016).
+- Q: Who generates the `operationId` and at what point in the drawing lifecycle? → A: Client on pointer-down — the drawing client generates a UUID at pointer-down, ensuring the same ID is used for all subsequent preview and commit events for that stroke.
+- Q: Should a pointer-cancel acceptance scenario be added to User Story 1 to make FR-008's cancel path directly testable? → A: Yes — added as Acceptance Scenario 4: pointer-cancel cancels the preview and emits no commit.
+- Q: At what opacity should a remote user's in-progress preview render on the local canvas? → A: Full opacity — previews render identically to committed strokes; no visual distinction between in-progress and committed strokes.
+- Q: When the pointer leaves the canvas bounds mid-stroke (no pointer-up), should the stroke be committed or cancelled? → A: ~~Committed~~ **(superseded — see Session 2026-05-18)**
 - Q: Is spec 004 (color & brush controls) already implemented, or does this feature have a dependency on it? → A: Already implemented — color and brush size state is available; no fallback to defaults is needed.
 - Q: Should a maximum preview event throttle rate be defined as a behavioral requirement? → A: Yes — emit at most one preview event per 30 ms (~33 updates/sec).
 - Q: Should the server maintain an in-memory registry of active previews to replay to newly joined or reconnecting users? → A: No — server relays preview events immediately and discards them; joining users will receive the next preview naturally within 30 ms.
+
+### Session 2026-05-18
+
+- Q: When the pointer leaves the canvas bounds mid-stroke, should the stroke pause, commit, or cancel? → A: Pause — point collection halts on pointer-leave and the current preview remains visible; collection resumes on pointer-enter; the stroke commits only on pointer-up wherever it occurs. Pointer capture is retained from pointer-down so pointer-up is always received even when the pointer is outside the canvas at release.
 
 ## Assumptions
 
@@ -119,4 +114,5 @@ As a user watching another user draw, I can visually distinguish that user's in-
 - The canvas virtual coordinate system is already established; preview points use the same coordinate space as committed points.
 - Preview events are throttled to at most one emission per 30 ms on the client. Each event carries the complete accumulated points array to date, ensuring no path segments are lost despite the rate cap.
 - Mobile / touch pointer events are out of scope for this feature; pointer events API is sufficient.
+- Pointer event capture is retained from pointer-down for the duration of a stroke. This ensures pointer-up events are received even when the pointer is outside the canvas element at release, making pointer-up a reliable and unconditional commit trigger.
 - The server is a stateless relay for preview events — it does not cache or replay them. A user joining mid-session will not see in-flight previews from others until the next preview event arrives (within 30 ms at most).

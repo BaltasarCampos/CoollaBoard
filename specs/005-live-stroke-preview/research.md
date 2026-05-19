@@ -1,100 +1,117 @@
 # Research: Live Stroke Preview
 
-**Feature**: 005-live-stroke-preview  
-**Date**: 2026-05-17  
-**Status**: Complete — no NEEDS CLARIFICATION items remain
+**Feature**: `005-live-stroke-preview`  
+**Date**: 2026-05-18  
+**Status**: Complete — all unknowns resolved
 
 ---
 
-## Research Topic 1: Preview Rendering Strategy — Overlay Canvas vs. Same-Canvas Second Pass
+## 1. Overlay Canvas for Separated Rendering Layers
 
-**Question**: Should in-progress preview strokes be rendered on a separate HTML canvas overlaid on top of the committed-operations canvas, or as an additional rendering pass on the existing single canvas element?
+**Decision**: Two stacked `<canvas>` elements — one for committed operations (existing), one for in-progress previews (new, on top).
 
-**Decision**: Same-canvas second rendering pass
+**Rationale**: FR-009 requires that preview rendering does not interfere with the committed operations layer. The cleanest isolation is a physically separate canvas element positioned absolutely over the main canvas, sharing the same dimensions. The preview canvas is cleared and repainted every RAF frame using only preview map data; the committed canvas is untouched. The overlay canvas carries `pointer-events: none` so all pointer events fall through to (and are captured by) the main canvas element.
 
-**Rationale**:
-The current architecture uses a single `<canvas>` element with a `requestAnimationFrame` render loop driven by a dirty flag (`dirtyRef`). All committed operations are re-drawn from scratch on each dirty frame via `getVisibleOperations()`. Adding previews as a second pass inside the same render cycle is the minimal-change approach:
-- No new DOM elements or React refs
-- No need to synchronise two canvases' resize/DPI behaviour
-- Preview opacity is controlled by setting `ctx.globalAlpha` before the preview rendering pass and restoring it after — one line change per preview stroke
-- The dirty flag already fires at 30 ms intervals (matching the preview throttle) so no change to the render loop cadence is needed
-
-The separate-overlay approach would require a second `<canvas>` positioned absolutely, a second `ResizeObserver`, forwarding pointer events through an overlay to the underlying canvas, and a second render loop. This is disproportionate complexity for a read-only rendering pass.
-
-**Alternatives considered**:
-- **Separate overlay canvas**: Rejected — adds DOM complexity, resize synchronisation, and event-forwarding logic with no rendering quality benefit.
-- **CSS `opacity` on new SVG strokes**: Rejected — SVG in-progress paths would diverge from the Canvas-API rendering model used for committed operations, creating visual inconsistency.
+**Alternatives considered**:  
+- *Single canvas with z-ordered draw calls*: Preview strokes would be drawn after committed ops each frame. This requires replaying all committed ops every frame even when only previews change, increasing CPU load and creating a transient artifact risk at the preview→commit transition. Rejected.  
+- *Off-screen canvas composited via `drawImage`*: Extra compositing step with no benefit over a DOM-stacked approach. Rejected.
 
 ---
 
-## Research Topic 2: Preview Event Throttle — Implementation Pattern
+## 2. operationId Generation Timing
 
-**Question**: How should the 30 ms emit throttle (FR-015) be implemented in tool modules (`penTool.js`, `eraserTool.js`)?
+**Decision**: Client generates a UUID (`crypto.randomUUID()`) at pointer-down — not at pointer-up as in the current implementation.
 
-**Decision**: Leading-edge timestamp throttle using `Date.now()` comparison
+**Rationale**: The `operationId` must be the same for all preview events and the eventual commit event so that remote clients can correlate them (FR-007). Moving generation to pointer-down fulfills this and is consistent with the clarification in the spec (Session 2026-05-17).
 
-**Rationale**:
-Each tool module already maintains an internal `drawing` boolean and a `points` array as plain module-level state. Adding a `lastPreviewEmit` timestamp variable alongside these is zero external dependency. The implementation:
-
-```javascript
-// Inside onPointerMove:
-const now = Date.now();
-if (now - lastPreviewEmit >= 30) {
-  emitStrokePreview(operationId, type, [...points], color, brushSize);
-  lastPreviewEmit = now;
-}
-```
-
-This is a **leading-edge throttle**: the first move fires immediately (when `lastPreviewEmit = 0`), and then at most once per 30 ms thereafter. The emitted payload always carries the **full accumulated points array** so no intermediate points are lost if a frame is skipped — the next emission corrects the remote view.
-
-**Alternatives considered**:
-- **`setInterval` in `onPointerDown`**: Would require interval teardown in `onPointerUp`/`onPointerCancel` — more lifecycle management. Leading-edge timestamp is simpler.
-- **requestAnimationFrame-based throttle**: Ties preview emission to the render loop (60 fps) rather than the spec-required 30 ms cadence. Over-specifies behaviour and couples network I/O to render timing.
-- **Trailing-edge throttle**: Emits after 30 ms of inactivity — bad for drawing UX, as the remote view would lag continuously.
+**Alternatives considered**:  
+- *Generate at pointer-up and embed in preview events retroactively*: Not possible — preview events are sent before pointer-up occurs.  
+- *Server-assigned ID*: Would require a round-trip acknowledgement before any preview can be sent; adds latency and complicates the stateless relay constraint. Rejected.
 
 ---
 
-## Research Topic 3: Pointer-Leave / Pointer-Cancel — Pointer Capture Conflict
+## 3. Preview Event Throttle Strategy
 
-**Question**: The spec requires a stroke to be cancelled when the pointer leaves the canvas bounds (FR-009, clarification Q1). The current `Canvas.jsx` calls `canvas.setPointerCapture(e.pointerId)` on pointer-down, which suppresses `pointerleave` events during a stroke. How should these be reconciled?
+**Decision**: `Date.now()`-based timestamp comparison inside the tool's `onPointerMove` handler. A `lastPreviewAt` variable tracks the last emission time; a new preview is emitted only if `Date.now() - lastPreviewAt >= 30`. Each emitted event carries the **full accumulated points array** to date so no path segments are lost due to the rate cap.
 
-**Decision**: Remove `setPointerCapture`; handle `onPointerLeave` (as cancel) and `onPointerCancel` (as cancel)
+**Rationale**: FR-014 mandates ≤ 1 event per 30 ms. A simple timestamp gate is deterministic, has zero dependency overhead, and avoids timer-based approaches that can fire slightly after pointer-up (causing a spurious final preview event after the commit has already been sent).
 
-**Rationale**:
-`setPointerCapture` was added to ensure `pointermove` events continue arriving when the pointer drifts outside the element boundaries. Without it, fast mouse movements cause missed points at the canvas edge. However:
-
-1. The spec explicitly chose "cancel on leave" (clarification Q1 — Option A). Keeping pointer capture silently overrides this spec decision.
-2. For the intended use case (desktop browser, mouse), removing capture still delivers good point density up to the canvas boundary, and the boundary itself acts as the natural stroke end.
-3. `onPointerCancel` must still be added regardless (no capture → system interrupts still fire `pointercancel`).
-4. Touch behaviour: on mobile (out-of-scope per spec assumptions), `pointercancel` handles the gesture-steal case. Removing capture does not break touch strokes on devices that honour the spec's pointer events model.
-
-The `onPointerLeave` handler in `Canvas.jsx` calls the same cancel path as `onPointerCancel`: emits `draw:stroke-cancel` and clears local state.
-
-**Alternatives considered**:
-- **Keep `setPointerCapture`, add programmatic boundary check**: On each `pointermove`, check if the virtual coordinates are outside the canvas bounds and treat that as a leave. Rejected — fragile and duplicates what `onPointerLeave` already provides natively.
-- **Keep `setPointerCapture`, listen for `pointerleave` on the document**: Would fire when the pointer leaves the browser window, not the canvas. Not equivalent to the spec requirement.
+**Alternatives considered**:  
+- *`setInterval`-driven batch emission*: Stale interval could send a preview event after pointer-up. Requires careful cleanup on cancel/up events. Rejected.  
+- *`requestAnimationFrame` gating*: Ties emission to frame rate (~16 ms), which is faster than required and adds coupling to the rendering cycle. Rejected.  
+- *Lodash `throttle`*: Introduces a new package dependency; adds trailing-call risk. Rejected.
 
 ---
 
-## Research Topic 4: Server-Side Preview Relay — Session Registry for Disconnect Cleanup
+## 4. Pointer-Leave / Pointer-Enter Pause-Resume Semantics
 
-**Question**: The server is a stateless relay for preview events (FR-003). However, Principle VIII (Resilience) and FR-009 require that in-progress previews from a disconnected user be cleared. How can the server broadcast a `draw:preview-cancel` on disconnect if it doesn't persist previews?
+**Decision**: On `pointerleave`, the tool sets an `insideCanvas` flag to `false` and stops appending points; the last emitted preview remains visible on all canvases. On `pointerenter`, the flag resets to `true` and point collection resumes. On `pointerup` (delivered always due to pointer capture set at pointer-down), the stroke commits with all points accumulated before the pointer left the canvas bounds.
 
-**Decision**: Track active `operationId` per socket session in `eventHandlers.js` — lightweight, not in `roomService`
+**Rationale**: FR-008 specifies this exact behavior. Pointer capture (`canvas.setPointerCapture(e.pointerId)`) from pointer-down guarantees that `pointerup` is delivered to the canvas element even when the pointer is outside its bounds at release. This is already wired in the current `Canvas.jsx` implementation (`canvas.setPointerCapture(e.pointerId)` in `handlePointerDown`).
 
-**Rationale**:
-The server does not need to store preview *content* (points, color, brushSize). It only needs to know, per socket, the `operationId` of any currently in-flight preview, so it can emit a `draw:preview-cancel` on disconnect. This is a single string per session stored in the existing `sessions` Map:
+**Alternatives considered**:  
+- *Commit on pointer-leave*: Would produce many unintended commits whenever the pointer briefly leaves the canvas. Rejected.  
+- *Cancel on pointer-leave*: Loses in-progress stroke points if user returns. Rejected.
 
-```javascript
-// sessions entry: { userId, roomId, activePreviewId: string | null }
-```
+---
 
-On `draw:stroke-preview`: set `session.activePreviewId = operationId`  
-On `draw:stroke-cancel` or `draw:stroke-commit` (`draw:stroke`): clear `session.activePreviewId = null`  
-On `disconnect`: if `session.activePreviewId` is set, emit `draw:preview-cancel` to the room
+## 5. Disconnect → Orphaned Preview Cleanup
 
-This keeps preview state minimal on the server (one nullable string per connected socket) and keeps `roomService.js` free of ephemeral data — satisfying both FR-007 and Principle VI.
+**Decision**: On socket `disconnect`, the server emits a new `user:left` event to the room (via `socket.to(roomId).emit(SERVER_EVENTS.USER_LEFT, { userId })`) before removing the session. Clients listen for this event in `usePreviewLayer` and call `clearAllPreviews` for that `userId`, removing all preview registry entries keyed to that user.
 
-**Alternatives considered**:
-- **No disconnect cleanup**: Leaves orphaned previews on all remote canvases until the next draw event. Violates SC-005 and FR-009.
-- **Room-level preview registry in `roomService.js`**: Overkill — persisting even a lightweight preview registry in the room service violates FR-007's spirit and grows `roomService`'s responsibility scope.
+**Rationale**: SC-005 requires orphaned previews to be removed within 5 s of disconnection. The server already handles disconnect cleanup (removing user from room); broadcasting `user:left` adds a single `socket.to().emit()` call. Client response is instantaneous. No server-side preview caching needed.
+
+**Alternatives considered**:  
+- *Client-side TTL (stale preview timeout)*: Client would need wall-clock timers per preview; if network is slow the preview might timeout prematurely. Complex and unreliable. Rejected.  
+- *Server-side TTL for preview entries*: Contradicts the stateless relay constraint (FR-003, FR-006). Rejected.  
+- *Reuse existing `room:state` re-hydration on reconnect*: Does not help remote clients who are still connected; they need a push signal. Rejected.
+
+---
+
+## 6. Server-Side userId Validation
+
+**Decision**: For each incoming `stroke:preview` or `stroke:cancel` event, the server looks up `sessions.get(socket.id).userId` and compares it to the `userId` field in the payload. If they differ, the event is dropped silently and a `warning`-level log entry is emitted (FR-016, FR-017).
+
+**Rationale**: Prevents a compromised client from broadcasting preview events under a different user's identity. The validation is a single map lookup with no performance impact.
+
+**Alternatives considered**:  
+- *Trust the payload userId*: Opens spoofing surface where any client can emit previews attributed to any userId. Rejected.  
+- *Strip payload userId and replace with session userId*: Equivalent protection; however dropping and logging is preferred by the spec to avoid silent mutation. Rejected.
+
+---
+
+## 7. Local Preview Rendering in Canvas Component
+
+**Decision**: The local in-progress stroke (before commit) is maintained as a single `localPreview` ref in `Canvas.jsx`. On each `onPointerMove`, the current tool returns the latest `{ operationId, type, points, color, brushSize }` snapshot; the Canvas calls `setPreview` on `usePreviewLayer` with this data. The preview hook merges it into the shared `previews` map, which the renderer uses for the overlay canvas.
+
+**Rationale**: Reusing the same `previews` map for both local and remote in-progress strokes simplifies the renderer — it iterates one map without distinguishing origin. The local preview entry is removed when the commit fires (pointer-up) or the stroke is cancelled, exactly as remote entries are removed.
+
+**Alternatives considered**:  
+- *Separate local-preview state path*: Would require the renderer to check two data structures. Rejected.  
+- *Re-render the main canvas every pointer-move with the in-progress points appended*: Redraws all committed ops on every move event, which is expensive and violates FR-009's separation requirement. Rejected.
+
+---
+
+## 8. canvas:cleared Interaction with Previews
+
+**Decision**: When the `canvas:cleared` event is received (both locally and remotely), `useCanvas` already adds the CLEAR op to the operations array. Additionally, `Canvas.jsx` calls `clearAllPreviews()` from `usePreviewLayer` at the same point, wiping the preview overlay canvas. FR-013 is satisfied without changes to `useCanvas` internals.
+
+**Rationale**: The canvas clear is a committed operation that resets visual state. Preview entries from any user at or before the clear are stale and must be discarded.
+
+**Alternatives considered**:  
+- *Pass clearAllPreviews into useCanvas and call it there*: Creates a dependency from the data hook to the preview hook. Rejected in favour of co-locating both calls in Canvas.jsx which owns both hooks.
+
+---
+
+## Summary Table
+
+| # | Unknown / Decision Point | Resolution |
+|---|--------------------------|------------|
+| 1 | How to separate preview and committed rendering | Two stacked canvas elements; preview canvas with `pointer-events: none` |
+| 2 | When to generate operationId | At pointer-down (`crypto.randomUUID()`) |
+| 3 | Preview event throttle mechanism | `Date.now()` timestamp gate, 30 ms minimum interval |
+| 4 | Pointer-leave / pointer-enter semantics | Pause/resume via `insideCanvas` flag; pointer capture ensures pointer-up delivery |
+| 5 | Orphaned preview cleanup on disconnect | Server emits `user:left`; clients clear preview registry for that userId |
+| 6 | Server userId validation | Compare `payload.userId` vs `sessions.get(socket.id).userId`; drop + warn on mismatch |
+| 7 | How local preview enters the render pipeline | Tool returns snapshot on pointer-move; Canvas calls `setPreview`; shared previews map |
+| 8 | canvas:cleared interaction | Canvas.jsx calls `clearAllPreviews()` alongside the existing clear-op handling |

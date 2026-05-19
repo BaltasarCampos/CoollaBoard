@@ -1,40 +1,42 @@
 # Implementation Plan: Live Stroke Preview
 
-**Branch**: `005-live-stroke-preview` | **Date**: 2026-05-17 | **Spec**: [spec.md](spec.md)
+**Branch**: `005-live-stroke-preview` | **Date**: 2026-05-18 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/005-live-stroke-preview/spec.md`
 
 ## Summary
 
-Users currently only see a completed stroke appear on the canvas after they release the pointer. This feature makes every in-progress drawing stroke visible in real time — on the drawing user's own canvas (full opacity, immediate) and on all other users' canvases in the same room (reduced opacity, via new `draw:stroke-preview` socket events throttled at 30 ms). When a stroke is abandoned (pointer-cancel or pointer-leave), a `draw:stroke-cancel` event removes the preview from all canvases. The server is a stateless relay for preview events — it broadcasts but never persists them.
+Extend the drawing pipeline to emit transient `stroke:preview` events during pointer-move (throttled to ≤ 1 per 30 ms) so each drawing user sees their stroke rendered incrementally on their own canvas, and all other room participants see it in real time via broadcast. The server acts as a stateless relay — it validates the sender's `userId`, forwards preview events to room participants, and discards them without persisting. When a stroke commits (pointer-up) the existing `draw:stroke` path takes over; all canvases replace the preview with the committed operation. A new overlay canvas element (rendered above committed content) is used exclusively for preview rendering, satisfying the no-interference constraint. Each in-progress stroke is identified by a UUID generated on pointer-down, correlating preview and commit events throughout the stroke lifecycle.
 
 ## Technical Context
 
-**Language/Version**: JavaScript ES2022, Node.js 18+, React 18  
-**Primary Dependencies**: React, Socket.IO 4.x (client + server), Vite, Canvas API  
-**Storage**: N/A for previews — all preview state is transient, in-memory, per-client  
-**Testing**: Vitest + React Testing Library (client unit/component), Vitest (server unit), Playwright (E2E)  
-**Target Platform**: Chromium/Firefox/Safari web browser + Node.js server  
-**Project Type**: Fullstack real-time collaborative web application  
-**Performance Goals**: ≤30 ms preview event throttle (~33 updates/sec); <200 ms p95 preview-to-remote-render latency  
-**Constraints**: Preview operations MUST NOT be persisted in room operation history; preview rendering MUST NOT corrupt committed canvas state  
-**Scale/Scope**: Small collaborative rooms (2–10 users); ≥5 concurrent in-progress previews on a single canvas
+**Language/Version**: JavaScript (ES2022 modules), React 18.3, JSX  
+**Primary Dependencies**: React 18, Vite 5, Vitest 1, @testing-library/react 16, socket.io-client 4, socket.io 4 (Node.js 20+)  
+**Storage**: In-memory server state; preview events are NOT persisted — server is a stateless relay  
+**Testing**: Vitest + @testing-library/react + jsdom (client unit); Jest + socket.io-client (server integration); Playwright (E2E)  
+**Target Platform**: Modern desktop browser (Chrome/Firefox/Edge); Pointer Events API required  
+**Project Type**: React SPA (`client/`) + Node.js Socket.IO server (`server/`), multi-package monorepo  
+**Performance Goals**: Local preview renders within one pointer-move event (~16 ms per frame); remote preview arrives within ~200 ms under < 50 ms RTT; preview canvas clear-to-redraw stays < 16 ms  
+**Constraints**: No new npm packages; preview events throttled to ≤ 1 per 30 ms per stroke; server does not cache or replay previews; overlay canvas uses CSS `position: absolute` with `pointer-events: none`  
+**Scale/Scope**: 5 new or modified source files in `client/`, 2 in `server/`, 1 in `shared/`; 1 new hook; new test files for preview hook and integration flow
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| # | Principle | Status | Notes |
-|---|-----------|--------|-------|
-| I | **Test-First** | ✅ PASS | TDD plan: unit tests for new tool preview methods and `useCanvas` preview state; integration tests for `draw:stroke-preview` / `draw:stroke-cancel` socket flows; E2E test for two-user live preview scenario |
-| II | **Modularity** | ✅ PASS | Preview state isolated in `useCanvas`; preview rendering isolated in `useCanvasRenderer`; tool preview emission encapsulated in each tool module; no cross-tool coupling |
-| III | **Event-Driven** | ✅ PASS | Two new named events added (`draw:stroke-preview`, `draw:stroke-cancel`); server remains a broker, never owns rendering logic; clients react to incoming events |
-| IV | **Idempotency** | ✅ PASS | Each preview event carries the full accumulated points array — re-delivering the same event produces the same preview state. Preview events do not enter `seenOps` (they are not persisted). The final commit event carries a unique `operationId` and remains idempotent via existing `seenOps` deduplication |
-| V | **Convergence** | ✅ PASS | Preview state is ephemeral and outside the convergence algorithm; only committed operations participate in `getVisibleOperations()` ordering |
-| VI | **Loose Coupling** | ✅ PASS | New event names added to `shared/constants.js`; new emitters added to `client/src/services/socket.js`; server relay logic in `eventHandlers.js`; no direct cross-module imports |
-| VII | **Observability** | ✅ PASS | Server MUST log `draw:stroke-preview` relay and `draw:stroke-cancel` relay events with `roomId`, `userId`, `operationId` |
-| VIII | **Resilience** | ✅ PASS | On user disconnect, server emits `draw:preview-cancel` to room for all previews from that userId, clearing orphaned previews |
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Test-First (TDD)** | ✅ PASS | All new/modified units get failing tests before implementation: `usePreviewLayer`, `penTool`, `eraserTool`, `useCanvasRenderer`, preview event handlers on server. |
+| **II. Modularity** | ✅ PASS | Preview state management extracted to a new `usePreviewLayer` hook with a single responsibility. Preview canvas rendering isolated from committed canvas rendering. Tools remain self-contained. |
+| **III. Event-Driven** | ✅ PASS | Two new client→server events (`stroke:preview`, `stroke:cancel`) and three new server→client events (`stroke:preview:broadcast`, `stroke:cancel:broadcast`, `user:left`) added. All carry versioned, documented payloads. No polling. |
+| **IV. Idempotency** | ✅ PASS | Preview events are transient and never stored or replayed; they do not participate in the deduplication layer. The committed `draw:stroke` event retains its `operationId`-based dedup. |
+| **V. Convergence** | ✅ PASS | Previews are discarded at commit; final canvas state is determined solely by committed operations. All clients with the same committed op sequence produce identical output. |
+| **VI. Loose Coupling** | ✅ PASS | New socket emissions routed exclusively through `socket.js`. Server preview handler references only the `sessions` map and `io`. `usePreviewLayer` communicates via socket service, not direct server imports. |
+| **VII. Observability** | ✅ PASS | Server emits warning-level log (FR-017) on every `userId` mismatch drop, including `socketId` and received `userId`. |
+| **VIII. Resilience** | ✅ PASS | On socket disconnect, server emits `user:left` to the room; clients remove all preview registry entries for that `userId`, satisfying SC-005 (< 5 s cleanup). Reconnection + re-hydration restores committed state as before. |
 
-**Gate result: PASS** — no violations; proceeding to Phase 0.
+**Gate result**: All principles PASS. Proceed to Phase 0.
+
+**Post-Phase 1 re-check**: All principles continue to hold after design. The two-canvas approach cleanly satisfies Principles II and IX. The `usePreviewLayer` hook boundary and the stateless server relay satisfy VI. No new violations introduced.
 
 ## Project Structure
 
@@ -42,54 +44,73 @@ Users currently only see a completed stroke appear on the canvas after they rele
 
 ```text
 specs/005-live-stroke-preview/
-├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
+├── plan.md                          ← this file
+├── research.md                      ← Phase 0 output
+├── data-model.md                    ← Phase 1 output
+├── quickstart.md                    ← Phase 1 output
 ├── contracts/
-│   └── socket-events.md # Phase 1 output
-└── tasks.md             # Phase 2 output (/speckit.tasks — NOT created here)
+│   └── socket-events.md             ← Phase 1 output (new preview/cancel event schemas)
+└── tasks.md                         ← Phase 2 output (/speckit.tasks — not created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
 
 ```text
 shared/
-└── constants.js                    # ADD: EVENTS.DRAW_STROKE_PREVIEW, EVENTS.DRAW_STROKE_CANCEL,
-                                    #      SERVER_EVENTS.PREVIEW_BROADCAST, SERVER_EVENTS.PREVIEW_CANCEL
+└── constants.js                     ← UPDATED: add EVENTS.STROKE_PREVIEW, EVENTS.STROKE_CANCEL,
+                                                  SERVER_EVENTS.STROKE_PREVIEW_BROADCAST,
+                                                  SERVER_EVENTS.STROKE_CANCEL_BROADCAST,
+                                                  SERVER_EVENTS.USER_LEFT
 
 client/src/
 ├── services/
-│   └── socket.js                   # ADD: emitStrokePreview(), emitStrokeCancel()
+│   └── socket.js                    ← UPDATED: add emitStrokePreview(), emitStrokeCancel()
 ├── tools/
-│   ├── penTool.js                  # MODIFY: onPointerMove emits throttled preview; expose operationId
-│   └── eraserTool.js              # MODIFY: onPointerMove emits throttled preview; expose operationId
+│   ├── penTool.js                   ← UPDATED: operationId generated on pointer-down; throttled
+│   │                                            preview emission; pointer-cancel/leave/enter
+│   │                                            handlers; returns preview payload from pointer-move
+│   └── eraserTool.js                ← UPDATED: same changes as penTool
 ├── hooks/
-│   ├── useCanvas.js                # MODIFY: add previews Map state; handle preview-broadcast / preview-cancel
-│   └── useCanvasRenderer.js        # MODIFY: render previews pass (remote at 0.6 alpha, local at 1.0 alpha)
+│   ├── useCanvas.js                 ← unchanged: canvas:cleared handling stays internal;
+│   │                                            clearAllPreviews() is called directly from
+│   │                                            Canvas.jsx on the canvas:cleared path (no
+│   │                                            callback injection into useCanvas needed)
+│   └── usePreviewLayer.js           ← NEW: manages previews Map<operationId, StrokePreview>;
+│                                            subscribes to stroke:preview:broadcast,
+│                                            stroke:cancel:broadcast, user:left; exposes
+│                                            setPreview, removePreview, clearAllPreviews, previews
 └── components/
-    └── Canvas.jsx                  # MODIFY: add onPointerLeave + onPointerCancel handlers; remove setPointerCapture
+    └── Canvas.jsx                   ← UPDATED: adds previewCanvasRef + overlay <canvas>;
+                                                  uses usePreviewLayer; passes local preview to
+                                                  preview layer on pointer-move; handles
+                                                  onPointerCancel, onPointerLeave, onPointerEnter
+
+client/src/hooks/
+└── useCanvasRenderer.js             ← UPDATED: accept previewCanvasRef + previews; render preview
+                                                  layer in a dedicated RAF-driven branch
 
 server/src/
 └── handlers/
-    └── eventHandlers.js            # MODIFY: relay draw:stroke-preview; relay draw:stroke-cancel;
-                                    #         emit preview-cancel for all user previews on disconnect
+    └── eventHandlers.js             ← UPDATED: add stroke:preview handler (validate userId, relay);
+                                                  add stroke:cancel handler (validate userId, relay);
+                                                  on disconnect: emit user:left to room
 
 client/tests/unit/
-├── penTool.test.js                 # ADD: preview emission tests
-├── eraserTool.test.js              # ADD: preview emission tests
-├── useCanvas.test.js               # ADD: preview state management tests
-└── useCanvasRenderer.test.js       # ADD: preview rendering tests (opacity, layer order)
+├── penTool.test.js                  ← UPDATED: operationId at pointer-down; preview emission;
+│                                               cancel/leave/enter behavior
+├── eraserTool.test.js               ← UPDATED: same as penTool
+├── usePreviewLayer.test.js          ← NEW: preview CRUD, socket subscription, clear-on-disconnect
+└── useCanvasRenderer.test.js        ← UPDATED: preview layer rendering assertions
 
 server/tests/integration/
-└── drawHandlers.test.js            # ADD: preview relay tests, cancel relay tests, disconnect cleanup tests
-
-e2e/
-└── drawing.spec.js                 # ADD: live stroke preview E2E scenarios (local + remote)
+└── drawHandlers.test.js             ← UPDATED: stroke:preview relay; userId mismatch drop + log;
+                                                  stroke:cancel relay; user:left on disconnect
 ```
 
-**Structure Decision**: Single web application with monorepo layout (existing `client/`, `server/`, `shared/`). Changes are additive — no new top-level directories needed. All new source files are test files only; all feature code extends existing modules.
+**Structure Decision**: Web application layout. `client/` is the React SPA; `server/` is the Node.js Socket.IO backend; `shared/` holds event name constants imported by both. The overlay canvas approach uses two stacked `<canvas>` elements inside a shared wrapper div — the preview canvas is absolutely positioned on top with `pointer-events: none`.
 
 ## Complexity Tracking
 
-> No constitution violations — this table is not required.
+> **Fill ONLY if Constitution Check has violations that must be justified**
+
+No violations — complexity tracking not required for this feature.
