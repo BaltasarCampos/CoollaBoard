@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { toScreen } from '../utils/coordinates.js';
 import { VIRTUAL_WIDTH, ERASER_RADIUS, DEFAULT_STROKE_COLOR, DEFAULT_BRUSH_WIDTH, OP_TYPE } from 'shared/constants.js';
 
-export function useCanvasRenderer(canvasRef, operations, getVisibleOperations) {
+export function useCanvasRenderer(canvasRef, operations, getVisibleOperations, previewCanvasRef, previews) {
   const dirtyRef = useRef(true);
 
   // Mark dirty whenever operations array reference changes
@@ -27,6 +27,18 @@ export function useCanvasRenderer(canvasRef, operations, getVisibleOperations) {
           else if (op.type === OP_TYPE.ERASE) renderErase(ctx, op, canvas);
         }
       }
+
+      // Always clear the preview canvas; repaint only if there are active previews
+      if (previewCanvasRef?.current && previews) {
+        const previewCanvas = previewCanvasRef.current;
+        const pCtx = previewCanvas.getContext('2d');
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        for (const preview of previews.values()) {
+          if (preview.type === OP_TYPE.DRAW) renderDraw(pCtx, preview, previewCanvas);
+          else if (preview.type === OP_TYPE.ERASE) renderErasePreview(pCtx, preview, previewCanvas);
+        }
+      }
+
       frameId = requestAnimationFrame(render);
     }
     frameId = requestAnimationFrame(render);
@@ -34,13 +46,17 @@ export function useCanvasRenderer(canvasRef, operations, getVisibleOperations) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [operations]);
 
-  // Resize canvas to fill container and mark dirty
+  // Resize canvas (and preview canvas) to fill container and mark dirty
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     function resize() {
       canvas.width  = canvas.clientWidth;
       canvas.height = canvas.clientHeight;
+      if (previewCanvasRef?.current) {
+        previewCanvasRef.current.width  = canvas.clientWidth;
+        previewCanvasRef.current.height = canvas.clientHeight;
+      }
       dirtyRef.current = true;
     }
     const observer = new ResizeObserver(resize);
@@ -76,6 +92,28 @@ function renderErase(ctx, op, canvas) {
     const { x, y } = toScreen(pt.x, pt.y, canvas);
     const radius = ERASER_RADIUS * (canvas.clientWidth / VIRTUAL_WIDTH);
     ctx.clearRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+  ctx.restore();
+}
+
+/**
+ * Preview-only eraser renderer: draws a visible semi-transparent trail showing
+ * where the eraser will erase. Uses fill+stroke so it's visible on a transparent canvas.
+ */
+function renderErasePreview(ctx, op, canvas) {
+  if (!op.points || op.points.length === 0) return;
+  const radius = ERASER_RADIUS * (canvas.clientWidth / VIRTUAL_WIDTH);
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#888888';
+  ctx.lineWidth = 1;
+  for (const pt of op.points) {
+    const { x, y } = toScreen(pt.x, pt.y, canvas);
+    ctx.beginPath();
+    ctx.rect(x - radius, y - radius, radius * 2, radius * 2);
+    ctx.fill();
+    ctx.stroke();
   }
   ctx.restore();
 }

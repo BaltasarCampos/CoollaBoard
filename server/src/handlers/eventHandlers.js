@@ -145,10 +145,48 @@ export function registerHandlers(io) {
       });
     });
 
+    // ── stroke:preview ────────────────────────────────────────────────────────
+    socket.on(EVENTS.STROKE_PREVIEW, (payload) => {
+      const session = sessions.get(socket.id);
+      if (!session?.roomId) return;
+
+      const { operationId, userId: payloadUserId, type, points } = payload || {};
+
+      if (payloadUserId !== session.userId) {
+        logger.warn({ event: EVENTS.STROKE_PREVIEW, socketId: socket.id, receivedUserId: payloadUserId });
+        return;
+      }
+      if (!operationId) return;
+      if (!Array.isArray(points)) return;
+      if (![OP_TYPE.DRAW, OP_TYPE.ERASE].includes(type)) return;
+
+      socket.to(session.roomId).emit(SERVER_EVENTS.STROKE_PREVIEW_BROADCAST, payload);
+    });
+
+    // ── stroke:cancel ─────────────────────────────────────────────────────────
+    socket.on(EVENTS.STROKE_CANCEL, (payload) => {
+      const session = sessions.get(socket.id);
+      if (!session?.roomId) return;
+
+      const { operationId, userId: payloadUserId } = payload || {};
+
+      if (payloadUserId !== session.userId) {
+        logger.warn({ event: EVENTS.STROKE_CANCEL, socketId: socket.id, receivedUserId: payloadUserId });
+        return;
+      }
+      if (!operationId) return;
+
+      socket.to(session.roomId).emit(SERVER_EVENTS.STROKE_CANCEL_BROADCAST, {
+        operationId,
+        userId: session.userId,
+      });
+    });
+
     // ── disconnect ───────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
       const session = sessions.get(socket.id);
       if (session?.roomId) {
+        socket.to(session.roomId).emit(SERVER_EVENTS.USER_LEFT, { userId: session.userId });
         removeUserFromRoom(session.roomId, session.userId);
       }
       sessions.delete(socket.id);

@@ -1,18 +1,23 @@
 // Event names — client → server
 export const EVENTS = {
-  ROOM_CREATE:  'room:create',
-  ROOM_JOIN:    'room:join',
-  DRAW_STROKE:  'draw:stroke',
-  CANVAS_CLEAR: 'canvas:clear',
+  ROOM_CREATE:    'room:create',
+  ROOM_JOIN:      'room:join',
+  DRAW_STROKE:    'draw:stroke',
+  CANVAS_CLEAR:   'canvas:clear',
+  STROKE_PREVIEW: 'stroke:preview',
+  STROKE_CANCEL:  'stroke:cancel',
 };
 
 // Event names — server → client
 export const SERVER_EVENTS = {
-  ROOM_CREATED:   'room:created',
-  ROOM_STATE:     'room:state',
-  DRAW_BROADCAST: 'draw:broadcast',
-  CANVAS_CLEARED: 'canvas:cleared',
-  ROOM_ERROR:     'room:error',
+  ROOM_CREATED:              'room:created',
+  ROOM_STATE:                'room:state',
+  DRAW_BROADCAST:            'draw:broadcast',
+  CANVAS_CLEARED:            'canvas:cleared',
+  ROOM_ERROR:                'room:error',
+  STROKE_PREVIEW_BROADCAST:  'stroke:preview:broadcast',
+  STROKE_CANCEL_BROADCAST:   'stroke:cancel:broadcast',
+  USER_LEFT:                 'user:left',
 };
 
 // Canvas virtual coordinate space
