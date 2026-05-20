@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import '../styles/components/canvas.css';
 import { useCanvas } from '../hooks/useCanvas.js';
 import { useCanvasRenderer } from '../hooks/useCanvasRenderer.js';
 import { usePreviewLayer } from '../hooks/usePreviewLayer.js';
@@ -88,10 +89,10 @@ export default function Canvas({ activeTool, userId, roomId, initialOperations =
   }, [activeTool]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div className="canvas-wrapper">
       <canvas
         ref={canvasRef}
-        style={{ display: 'block', width: '100%', height: '100%', cursor: activeTool === TOOL_NAMES.ERASER ? 'crosshair' : 'default', touchAction: 'none' }}
+        className={`canvas-main${activeTool === TOOL_NAMES.ERASER ? ' canvas-main--eraser' : ''}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -101,7 +102,7 @@ export default function Canvas({ activeTool, userId, roomId, initialOperations =
       />
       <canvas
         ref={previewCanvasRef}
-        style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', width: '100%', height: '100%' }}
+        className="canvas-preview"
       />
     </div>
   );

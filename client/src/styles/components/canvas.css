@@ -1,0 +1,26 @@
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-main {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+  touch-action: none;
+}
+
+.canvas-main--eraser {
+  cursor: crosshair;
+}
+
+.canvas-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+}
