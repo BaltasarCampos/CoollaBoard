@@ -13,6 +13,13 @@ export function useCanvas() {
     });
   }, []);
 
+  const removeOperation = useCallback((operationId) => {
+    setOperations((prev) => {
+      if (!prev.some((o) => o.operationId === operationId)) return prev;
+      return prev.filter((o) => o.operationId !== operationId);
+    });
+  }, []);
+
   // Subscribe to remote draw broadcasts and canvas:cleared
   useEffect(() => {
     const socket = getSocket();
@@ -51,5 +58,5 @@ export function useCanvas() {
     return clearIndex >= 0 ? sorted.slice(clearIndex + 1) : sorted;
   }
 
-  return { operations, addOperation, getVisibleOperations };
+  return { operations, addOperation, removeOperation, getVisibleOperations };
 }

@@ -6,6 +6,8 @@ export const EVENTS = {
   CANVAS_CLEAR:   'canvas:clear',
   STROKE_PREVIEW: 'stroke:preview',
   STROKE_CANCEL:  'stroke:cancel',
+  UNDO_REQUEST:   'undo:request',
+  REDO_REQUEST:   'redo:request',
 };
 
 // Event names — server → client
@@ -18,6 +20,9 @@ export const SERVER_EVENTS = {
   STROKE_PREVIEW_BROADCAST:  'stroke:preview:broadcast',
   STROKE_CANCEL_BROADCAST:   'stroke:cancel:broadcast',
   USER_LEFT:                 'user:left',
+  UNDO_BROADCAST:            'undo:broadcast',
+  REDO_BROADCAST:            'redo:broadcast',
+  UNDO_STATE:                'undo:state',
 };
 
 // Canvas virtual coordinate space
@@ -77,3 +82,7 @@ export const ERROR_CODES = {
   ROOM_NOT_FOUND: 'ROOM_NOT_FOUND',
   SERVER_ERROR:   'SERVER_ERROR',
 };
+
+// Undo / redo history configuration
+export const UNDO_HISTORY_DEPTH      = 20;
+export const UNDO_CONFIRM_TIMEOUT_MS = 5000;

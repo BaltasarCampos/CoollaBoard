@@ -24,7 +24,7 @@ description: "Task list for 006-undo-redo feature implementation"
 
 **Purpose**: Add the new socket-event constants that every other phase depends on. This is the single shared prerequisite — all phases block on this file.
 
-- [ ] T001 Add EVENTS.UNDO_REQUEST, EVENTS.REDO_REQUEST, SERVER_EVENTS.UNDO_BROADCAST, SERVER_EVENTS.REDO_BROADCAST, SERVER_EVENTS.UNDO_STATE, UNDO_HISTORY_DEPTH = 20, and UNDO_CONFIRM_TIMEOUT_MS = 5000 to shared/constants.js
+- [x] T001 Add EVENTS.UNDO_REQUEST, EVENTS.REDO_REQUEST, SERVER_EVENTS.UNDO_BROADCAST, SERVER_EVENTS.REDO_BROADCAST, SERVER_EVENTS.UNDO_STATE, UNDO_HISTORY_DEPTH = 20, and UNDO_CONFIRM_TIMEOUT_MS = 5000 to shared/constants.js
 
 **Checkpoint**: Constants available to all packages via the shared workspace — server and client can now import the new event names.
 
@@ -38,14 +38,14 @@ description: "Task list for 006-undo-redo feature implementation"
 
 ### Tests for Foundational Layer ⚠️ Write FIRST — must FAIL before implementation
 
-- [ ] T002 Write failing unit tests for pushToUndoStack (cap at 20), clearRedoStack, resolveUndo (personal + clear paths), resolveRedo, getUndoRedoState, and clearUserHistory in server/tests/unit/roomService.test.js
-- [ ] T003 [P] Write failing unit tests for removeOperation(operationId) deduplication (present ID removed, absent ID is a no-op) in client/tests/unit/useCanvas.test.js
+- [x] T002 Write failing unit tests for pushToUndoStack (cap at 20), clearRedoStack, resolveUndo (personal + clear paths), resolveRedo, getUndoRedoState, and clearUserHistory in server/tests/unit/roomService.test.js
+- [x] T003 [P] Write failing unit tests for removeOperation(operationId) deduplication (present ID removed, absent ID is a no-op) in client/tests/unit/useCanvas.test.js
 
 ### Implementation for Foundational Layer
 
-- [ ] T004 Extend room initializer with userUndoStacks: new Map(), userRedoStacks: new Map(), latestClearEntry: null and implement and export pushToUndoStack, clearRedoStack, resolveUndo, resolveRedo, getUndoRedoState, clearUserHistory in server/src/services/roomService.js
-- [ ] T005 [P] Add removeOperation(operationId) to client/src/hooks/useCanvas.js filtering the operation from the operations array and expose it in the hook's return value
-- [ ] T006 [P] Add emitUndoRequest() and emitRedoRequest() (each emitting an empty object payload) to client/src/services/socket.js
+- [x] T004 Extend room initializer with userUndoStacks: new Map(), userRedoStacks: new Map(), latestClearEntry: null and implement and export pushToUndoStack, clearRedoStack, resolveUndo, resolveRedo, getUndoRedoState, clearUserHistory in server/src/services/roomService.js
+- [x] T005 [P] Add removeOperation(operationId) to client/src/hooks/useCanvas.js filtering the operation from the operations array and expose it in the hook's return value
+- [x] T006 [P] Add emitUndoRequest() and emitRedoRequest() (each emitting an empty object payload) to client/src/services/socket.js
 
 **Checkpoint**: Foundation ready — roomService history API is tested and implemented; client has removeOperation and emit helpers. User story implementation can now begin.
 
@@ -59,16 +59,16 @@ description: "Task list for 006-undo-redo feature implementation"
 
 ### Tests for User Story 1 ⚠️ Write FIRST — must FAIL before implementation
 
-- [ ] T007 Write failing integration tests for undo:request handler: DRAW/ERASE stroke undo removes op from room.operations, undo:broadcast emitted to all room sockets, undo:state emitted to originator only, silent no-op when stack is empty, ownership validation silently rejects foreign-stroke undo request, and clearUserHistory called on disconnect in server/tests/integration/undoRedoHandlers.test.js
-- [ ] T008 [P] Write failing unit tests for useUndoRedo: canUndo updates from undo:state events, requestUndo() emits EVENTS.UNDO_REQUEST, undo:broadcast calls removeOperation, and pending guard prevents double-emit in client/tests/unit/useUndoRedo.test.js
-- [ ] T009 [P] Write failing unit tests for Toolbar: Undo button renders, onClick fires onUndo prop, button is disabled when canUndo=false in client/tests/unit/Toolbar.test.jsx
+- [x] T007 Write failing integration tests for undo:request handler: DRAW/ERASE stroke undo removes op from room.operations, undo:broadcast emitted to all room sockets, undo:state emitted to originator only, silent no-op when stack is empty, ownership validation silently rejects foreign-stroke undo request, and clearUserHistory called on disconnect in server/tests/integration/undoRedoHandlers.test.js
+- [x] T008 [P] Write failing unit tests for useUndoRedo: canUndo updates from undo:state events, requestUndo() emits EVENTS.UNDO_REQUEST, undo:broadcast calls removeOperation, and pending guard prevents double-emit in client/tests/unit/useUndoRedo.test.js
+- [x] T009 [P] Write failing unit tests for Toolbar: Undo button renders, onClick fires onUndo prop, button is disabled when canUndo=false in client/tests/unit/Toolbar.test.jsx
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] In server/src/handlers/eventHandlers.js: register undo:request handler for DRAW/ERASE strokes (call resolveUndo, emit undo:broadcast to room and undo:state to originator; log at info with durationMs), call pushToUndoStack after draw:stroke is committed, and call clearUserHistory on socket disconnect
-- [ ] T011 [US1] Create client/src/hooks/useUndoRedo.js with canUndo/canRedo state (false initially), requestUndo() that emits EVENTS.UNDO_REQUEST and sets a 5-second pending timeout that re-enables the control if no broadcast arrives, and an undo:broadcast socket listener that calls removeOperation and clears pending
-- [ ] T012 [US1] Add Undo button (label "Undo", disabled={!canUndo}, onClick={onUndo}) to client/src/components/Toolbar.jsx accepting onUndo and canUndo props
-- [ ] T013 [US1] In client/src/components/Canvas.jsx: call useUndoRedo with removeOperation from useCanvas; pass onUndo and canUndo as props to Toolbar
+- [x] T010 [US1] In server/src/handlers/eventHandlers.js: register undo:request handler for DRAW/ERASE strokes (call resolveUndo, emit undo:broadcast to room and undo:state to originator; log at info with durationMs), call pushToUndoStack after draw:stroke is committed, and call clearUserHistory on socket disconnect
+- [x] T011 [US1] Create client/src/hooks/useUndoRedo.js with canUndo/canRedo state (false initially), requestUndo() that emits EVENTS.UNDO_REQUEST and sets a 5-second pending timeout that re-enables the control if no broadcast arrives, and an undo:broadcast socket listener that calls removeOperation and clears pending
+- [x] T012 [US1] Add Undo button (label "Undo", disabled={!canUndo}, onClick={onUndo}) to client/src/components/Toolbar.jsx accepting onUndo and canUndo props
+- [x] T013 [US1] In client/src/components/Canvas.jsx: call useUndoRedo with removeOperation from useCanvas; pass onUndo and canUndo as props to Toolbar
 
 **Checkpoint**: User Story 1 fully functional and independently testable. A user can undo their own strokes; the change propagates to all connected clients; the Undo button disables when history is empty.
 
@@ -82,14 +82,14 @@ description: "Task list for 006-undo-redo feature implementation"
 
 ### Tests for User Story 2 ⚠️ Write FIRST — must FAIL before implementation
 
-- [ ] T014 Write failing integration tests for clear-canvas undo: any user (not just the clear originator) can undo via latestClearEntry, room-wide undo:state emitted to all sockets after clear undo, latestClearEntry set to null after undo, CLEAR op not placed on redo stack (FR-005), new CLEAR replaces old latestClearEntry, and clear-originator disconnect does not corrupt latestClearEntry or other users' undo:state (latestClearEntry remains set and canUndo remains accurate for remaining participants) in server/tests/integration/undoRedoHandlers.test.js
-- [ ] T015 [P] Write failing integration tests for undo:state emitted to originator after draw:stroke, undo:state emitted to all room sockets after canvas:clear, and undo:state emitted to joining socket on room:join and room:create in server/tests/integration/drawHandlers.test.js
+- [x] T014 Write failing integration tests for clear-canvas undo: any user (not just the clear originator) can undo via latestClearEntry, room-wide undo:state emitted to all sockets after clear undo, latestClearEntry set to null after undo, CLEAR op not placed on redo stack (FR-005), new CLEAR replaces old latestClearEntry, and clear-originator disconnect does not corrupt latestClearEntry or other users' undo:state (latestClearEntry remains set and canUndo remains accurate for remaining participants) in server/tests/integration/undoRedoHandlers.test.js
+- [x] T015 [P] Write failing integration tests for undo:state emitted to originator after draw:stroke, undo:state emitted to all room sockets after canvas:clear, and undo:state emitted to joining socket on room:join and room:create in server/tests/integration/drawHandlers.test.js
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] In server/src/handlers/eventHandlers.js: update canvas:clear handler to set room.latestClearEntry and emit undo:state to all room sockets; extend undo:request handler with the clear-undo path (call resolveUndo clear branch, emit undo:broadcast and per-socket undo:state to all room members; log at info with clearedByUserId and durationMs); emit undo:state to the drawing user's socket after draw:stroke
-- [ ] T017 [US2] In server/src/handlers/eventHandlers.js: emit undo:state (via getUndoRedoState) to the joining socket in room:join and room:create handlers so new participants receive correct canUndo/canRedo on arrival
-- [ ] T018 [US2] In client/src/hooks/useUndoRedo.js: extend undo:broadcast listener to handle CLEAR type by calling removeOperation(operationId) — removing the CLEAR op from the local operations array causes getVisibleOperations to expose pre-clear ops automatically; also clear pending timeout when userId matches local session
+- [x] T016 [US2] In server/src/handlers/eventHandlers.js: update canvas:clear handler to set room.latestClearEntry and emit undo:state to all room sockets; extend undo:request handler with the clear-undo path (call resolveUndo clear branch, emit undo:broadcast and per-socket undo:state to all room members; log at info with clearedByUserId and durationMs); emit undo:state to the drawing user's socket after draw:stroke
+- [x] T017 [US2] In server/src/handlers/eventHandlers.js: emit undo:state (via getUndoRedoState) to the joining socket in room:join and room:create handlers so new participants receive correct canUndo/canRedo on arrival
+- [x] T018 [US2] In client/src/hooks/useUndoRedo.js: extend undo:broadcast listener to handle CLEAR type by calling removeOperation(operationId) — removing the CLEAR op from the local operations array causes getVisibleOperations to expose pre-clear ops automatically; also clear pending timeout when userId matches local session
 
 **Checkpoint**: User Stories 1 and 2 both functional. Any user can undo a clear; all participants see the restored canvas; the cleared state cannot be redone.
 
@@ -103,16 +103,16 @@ description: "Task list for 006-undo-redo feature implementation"
 
 ### Tests for User Story 3 ⚠️ Write FIRST — must FAIL before implementation
 
-- [ ] T019 Write failing integration tests for redo:request handler: redo:broadcast emitted to all room sockets with the full operation payload, undo:state emitted to originator, silent no-op when redo stack is empty, and redo stack cleared after a new draw:stroke in server/tests/integration/undoRedoHandlers.test.js
-- [ ] T020 [P] Write failing unit tests for useUndoRedo: canRedo updates from undo:state events, requestRedo() emits EVENTS.REDO_REQUEST, redo:broadcast calls addOperation with the full operation payload, and clearRedoStack on new draw in client/tests/unit/useUndoRedo.test.js
-- [ ] T021 [P] Write failing unit tests for Toolbar: Redo button renders, onClick fires onRedo prop, button is disabled when canRedo=false in client/tests/unit/Toolbar.test.jsx
+- [x] T019 Write failing integration tests for redo:request handler: redo:broadcast emitted to all room sockets with the full operation payload, undo:state emitted to originator, silent no-op when redo stack is empty, and redo stack cleared after a new draw:stroke in server/tests/integration/undoRedoHandlers.test.js
+- [x] T020 [P] Write failing unit tests for useUndoRedo: canRedo updates from undo:state events, requestRedo() emits EVENTS.REDO_REQUEST, redo:broadcast calls addOperation with the full operation payload, and clearRedoStack on new draw in client/tests/unit/useUndoRedo.test.js
+- [x] T021 [P] Write failing unit tests for Toolbar: Redo button renders, onClick fires onRedo prop, button is disabled when canRedo=false in client/tests/unit/Toolbar.test.jsx
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] In server/src/handlers/eventHandlers.js: register redo:request handler (call resolveRedo, emit redo:broadcast to room and undo:state to originator; log at info with durationMs); call clearRedoStack inside the existing draw:stroke handler when type === OP_TYPE.DRAW or type === OP_TYPE.ERASE to invalidate redo history on any new drawing action (there is no separate eraser:stroke event — both draw and erase share the draw:stroke handler with an OP_TYPE discriminator)
-- [ ] T023 [US3] In client/src/hooks/useUndoRedo.js: add canRedo state, requestRedo() with 5-second pending timeout guard, and redo:broadcast socket listener that calls addOperation with the full operation and clears pending; expose requestRedo and canRedo from the hook
-- [ ] T024 [US3] Add Redo button (label "Redo", disabled={!canRedo}, onClick={onRedo}) to client/src/components/Toolbar.jsx accepting onRedo and canRedo props
-- [ ] T025 [US3] In client/src/components/Canvas.jsx: pass onRedo and canRedo from useUndoRedo as props to Toolbar
+- [x] T022 [US3] In server/src/handlers/eventHandlers.js: register redo:request handler (call resolveRedo, emit redo:broadcast to room and undo:state to originator; log at info with durationMs); call clearRedoStack inside the existing draw:stroke handler when type === OP_TYPE.DRAW or type === OP_TYPE.ERASE to invalidate redo history on any new drawing action (there is no separate eraser:stroke event — both draw and erase share the draw:stroke handler with an OP_TYPE discriminator)
+- [x] T023 [US3] In client/src/hooks/useUndoRedo.js: add canRedo state, requestRedo() with 5-second pending timeout guard, and redo:broadcast socket listener that calls addOperation with the full operation and clears pending; expose requestRedo and canRedo from the hook
+- [x] T024 [US3] Add Redo button (label "Redo", disabled={!canRedo}, onClick={onRedo}) to client/src/components/Toolbar.jsx accepting onRedo and canRedo props
+- [x] T025 [US3] In client/src/components/Canvas.jsx: pass onRedo and canRedo from useUndoRedo as props to Toolbar
 
 **Checkpoint**: All three user stories functional. Full undo/redo cycle works; new drawing clears redo history; Redo button disables correctly.
 
@@ -122,11 +122,11 @@ description: "Task list for 006-undo-redo feature implementation"
 
 **Purpose**: Keyboard shortcut support (FR-010), E2E multi-user coverage, and quickstart validation.
 
-- [ ] T026 Write failing unit tests for keyboard shortcut listeners: Ctrl+Z / Cmd+Z calls requestUndo, Ctrl+Y / Cmd+Y calls requestRedo, Ctrl+Shift+Z / Cmd+Shift+Z calls requestRedo, and listener is removed on hook unmount in client/tests/unit/useUndoRedo.test.js
-- [ ] T027 [P] Add keyboard shortcut listener on document in client/src/hooks/useUndoRedo.js: attach keydown handler on mount (Ctrl+Z / Cmd+Z → requestUndo; Ctrl+Y / Cmd+Y / Ctrl+Shift+Z / Cmd+Shift+Z → requestRedo); clean up on unmount via useEffect cleanup
-- [ ] T028 [P] Add multi-user undo/redo/clear E2E scenarios to e2e/drawing.spec.js covering the four quickstart.md manual test scenarios: undo own stroke, redo undone stroke, any user undoes a clear, and toolbar button enabled/disabled states
-- [ ] T029 [P] Add timing-assertion integration test to server/tests/integration/undoRedoHandlers.test.js: emit undo:request, record timestamp before emit and after undo:broadcast arrives on a second socket, assert the delta is ≤ 1000 ms — covering SC-001 under local socket.io round-trip conditions
-- [ ] T030 Run quickstart.md validation scenarios manually (all four scenarios) and confirm all acceptance criteria from spec.md pass end-to-end
+- [x] T026 Write failing unit tests for keyboard shortcut listeners: Ctrl+Z / Cmd+Z calls requestUndo, Ctrl+Y / Cmd+Y calls requestRedo, Ctrl+Shift+Z / Cmd+Shift+Z calls requestRedo, and listener is removed on hook unmount in client/tests/unit/useUndoRedo.test.js
+- [x] T027 [P] Add keyboard shortcut listener on document in client/src/hooks/useUndoRedo.js: attach keydown handler on mount (Ctrl+Z / Cmd+Z → requestUndo; Ctrl+Y / Cmd+Y / Ctrl+Shift+Z / Cmd+Shift+Z → requestRedo); clean up on unmount via useEffect cleanup
+- [x] T028 [P] Add multi-user undo/redo/clear E2E scenarios to e2e/drawing.spec.js covering the four quickstart.md manual test scenarios: undo own stroke, redo undone stroke, any user undoes a clear, and toolbar button enabled/disabled states
+- [x] T029 [P] Add timing-assertion integration test to server/tests/integration/undoRedoHandlers.test.js: emit undo:request, record timestamp before emit and after undo:broadcast arrives on a second socket, assert the delta is ≤ 1000 ms — covering SC-001 under local socket.io round-trip conditions
+- [x] T030 Run quickstart.md validation scenarios manually (all four scenarios) and confirm all acceptance criteria from spec.md pass end-to-end
 
 ---
 

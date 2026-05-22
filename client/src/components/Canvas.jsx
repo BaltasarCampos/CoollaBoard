@@ -3,6 +3,8 @@ import '../styles/components/canvas.css';
 import { useCanvas } from '../hooks/useCanvas.js';
 import { useCanvasRenderer } from '../hooks/useCanvasRenderer.js';
 import { usePreviewLayer } from '../hooks/usePreviewLayer.js';
+import { useUndoRedo } from '../hooks/useUndoRedo.js';
+import Toolbar from './Toolbar.jsx';
 import { createPenTool } from '../tools/penTool.js';
 import { createEraserTool } from '../tools/eraserTool.js';
 import { getSocket } from '../services/socket.js';
@@ -11,11 +13,12 @@ import { TOOL_NAMES, SERVER_EVENTS } from 'shared/constants.js';
 const penTool    = createPenTool();
 const eraserTool = createEraserTool();
 
-export default function Canvas({ activeTool, userId, roomId, initialOperations = [], color, brushSize }) {
+export default function Canvas({ activeTool, onToolChange, onClear, color, onColorChange, brushSize, onBrushSizeChange, userId, roomId, initialOperations = [] }) {
   const canvasRef = useRef(null);
   const previewCanvasRef = useRef(null);
-  const { operations, addOperation, getVisibleOperations } = useCanvas();
+  const { operations, addOperation, removeOperation, getVisibleOperations } = useCanvas();
   const { previews, setPreview, removePreview, clearAllPreviews } = usePreviewLayer();
+  const { canUndo, canRedo, requestUndo, requestRedo } = useUndoRedo({ removeOperation, addOperation });
 
   // Hydrate initial operations on mount / when room changes
   useEffect(() => {
@@ -90,6 +93,19 @@ export default function Canvas({ activeTool, userId, roomId, initialOperations =
 
   return (
     <div className="canvas-wrapper">
+      <Toolbar
+        activeTool={activeTool}
+        onToolChange={onToolChange}
+        onClear={onClear}
+        color={color}
+        onColorChange={onColorChange}
+        brushSize={brushSize}
+        onBrushSizeChange={onBrushSizeChange}
+        onUndo={requestUndo}
+        canUndo={canUndo}
+        onRedo={requestRedo}
+        canRedo={canRedo}
+      />
       <canvas
         ref={canvasRef}
         className={`canvas-main${activeTool === TOOL_NAMES.ERASER ? ' canvas-main--eraser' : ''}`}

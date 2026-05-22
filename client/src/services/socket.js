@@ -70,3 +70,11 @@ export function emitStrokePreview(payload) {
 export function emitStrokeCancel(payload) {
   socket.emit(EVENTS.STROKE_CANCEL, payload);
 }
+
+export function emitUndoRequest() {
+  socket.emit(EVENTS.UNDO_REQUEST, {});
+}
+
+export function emitRedoRequest() {
+  socket.emit(EVENTS.REDO_REQUEST, {});
+}

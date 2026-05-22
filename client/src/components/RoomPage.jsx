@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import ConnectionStatus from './ConnectionStatus.jsx';
 import Canvas from './Canvas.jsx';
-import Toolbar from './Toolbar.jsx';
 import { useRoom } from '../hooks/useRoom.js';
 import { TOOL_NAMES, DEFAULT_STROKE_COLOR, DEFAULT_BRUSH_WIDTH } from 'shared/constants.js';
 import '../styles/components/roompage.css';
@@ -34,18 +33,21 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
     <div className="room-page">
       <div className="room-page__header">
         <span data-testid="room-id" className="room-page__room-id">{roomId}</span>
-        <Toolbar activeTool={activeTool} onToolChange={setActiveTool} onClear={handleClear} color={color} onColorChange={setColor} brushSize={brushSize} onBrushSizeChange={setBrushSize} />
         <button className="btn" onClick={() => onLeaveRoom('')}>Leave</button>
       </div>
 
       <div className="room-page__canvas-area">
         <Canvas
           activeTool={activeTool}
+          onToolChange={setActiveTool}
+          onClear={handleClear}
+          color={color}
+          onColorChange={setColor}
+          brushSize={brushSize}
+          onBrushSizeChange={setBrushSize}
           roomId={roomId}
           userId={userId}
           initialOperations={operations}
-          color={color}
-          brushSize={brushSize}
         />
       </div>
 
