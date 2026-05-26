@@ -168,3 +168,171 @@ test.describe('Live stroke preview (US1 + US2)', () => {
   });
 });
 
+// ── Collaborative Undo / Redo (006-undo-redo) ─────────────────────────────────
+
+test.describe('Collaborative Undo / Redo', () => {
+  test('Scenario 1: undo own stroke — stroke disappears on both tabs', async ({ browser }) => {
+    const ctx1 = await browser.newContext();
+    const ctx2 = await browser.newContext();
+    const page1 = await ctx1.newPage();
+    const page2 = await ctx2.newPage();
+
+    await page1.goto('/');
+    await page1.getByRole('button', { name: /create room/i }).click();
+    await page1.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+    const roomId = await page1.locator('[data-testid="room-id"]').textContent();
+
+    await page2.goto('/');
+    await page2.getByPlaceholder(/room id/i).fill(roomId);
+    await page2.getByRole('button', { name: /join room/i }).click();
+    await page2.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+
+    // Draw a stroke in tab 1
+    const canvas1 = page1.locator('canvas').first();
+    await canvas1.hover({ position: { x: 400, y: 300 } });
+    await page1.mouse.down();
+    await page1.mouse.move(500, 300, { steps: 5 });
+    await page1.mouse.up();
+    await page1.waitForTimeout(300);
+
+    // Verify stroke appears on tab 2
+    const pixelBeforeUndo = await page2.locator('canvas').first().evaluate((el) => {
+      const ctx = el.getContext('2d');
+      return ctx.getImageData(450, 300, 1, 1).data[3];
+    });
+    expect(pixelBeforeUndo).toBeGreaterThan(0);
+
+    // Undo via Ctrl+Z on tab 1
+    await page1.keyboard.press('Control+z');
+    await page1.waitForTimeout(500);
+
+    // Verify stroke is gone on tab 2
+    const pixelAfterUndo = await page2.locator('canvas').first().evaluate((el) => {
+      const ctx = el.getContext('2d');
+      return ctx.getImageData(450, 300, 1, 1).data[3];
+    });
+    expect(pixelAfterUndo).toBe(0);
+
+    await ctx1.close();
+    await ctx2.close();
+  });
+
+  test('Scenario 2: redo undone stroke — stroke reappears on both tabs', async ({ browser }) => {
+    const ctx1 = await browser.newContext();
+    const ctx2 = await browser.newContext();
+    const page1 = await ctx1.newPage();
+    const page2 = await ctx2.newPage();
+
+    await page1.goto('/');
+    await page1.getByRole('button', { name: /create room/i }).click();
+    await page1.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+    const roomId = await page1.locator('[data-testid="room-id"]').textContent();
+
+    await page2.goto('/');
+    await page2.getByPlaceholder(/room id/i).fill(roomId);
+    await page2.getByRole('button', { name: /join room/i }).click();
+    await page2.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+
+    // Draw in tab 1
+    const canvas1 = page1.locator('canvas').first();
+    await canvas1.hover({ position: { x: 300, y: 200 } });
+    await page1.mouse.down();
+    await page1.mouse.move(380, 200, { steps: 5 });
+    await page1.mouse.up();
+    await page1.waitForTimeout(300);
+
+    // Undo, then redo
+    await page1.keyboard.press('Control+z');
+    await page1.waitForTimeout(300);
+    await page1.keyboard.press('Control+y');
+    await page1.waitForTimeout(500);
+
+    // Stroke should be visible again on tab 2
+    const pixel = await page2.locator('canvas').first().evaluate((el) => {
+      const ctx = el.getContext('2d');
+      return ctx.getImageData(340, 200, 1, 1).data[3];
+    });
+    expect(pixel).toBeGreaterThan(0);
+
+    await ctx1.close();
+    await ctx2.close();
+  });
+
+  test('Scenario 3: any user undoes a clear — pre-clear content restored on both tabs', async ({ browser }) => {
+    const ctx1 = await browser.newContext();
+    const ctx2 = await browser.newContext();
+    const page1 = await ctx1.newPage();
+    const page2 = await ctx2.newPage();
+
+    await page1.goto('/');
+    await page1.getByRole('button', { name: /create room/i }).click();
+    await page1.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+    const roomId = await page1.locator('[data-testid="room-id"]').textContent();
+
+    await page2.goto('/');
+    await page2.getByPlaceholder(/room id/i).fill(roomId);
+    await page2.getByRole('button', { name: /join room/i }).click();
+    await page2.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+
+    // Tab 1 draws strokes
+    const canvas1 = page1.locator('canvas').first();
+    await canvas1.hover({ position: { x: 200, y: 200 } });
+    await page1.mouse.down();
+    await page1.mouse.move(280, 200, { steps: 5 });
+    await page1.mouse.up();
+    await page1.waitForTimeout(300);
+
+    // Tab 2 clears the canvas
+    await page2.getByRole('button', { name: /clear canvas/i }).click();
+    await page2.getByRole('button', { name: /confirm/i }).click();
+    await page2.waitForTimeout(300);
+
+    // Tab 1 (not the clear originator) undoes the clear via keyboard
+    await page1.keyboard.press('Control+z');
+    await page1.waitForTimeout(500);
+
+    // Pre-clear strokes should be visible again on both tabs
+    const pixelTab2 = await page2.locator('canvas').first().evaluate((el) => {
+      const ctx = el.getContext('2d');
+      return ctx.getImageData(240, 200, 1, 1).data[3];
+    });
+    expect(pixelTab2).toBeGreaterThan(0);
+
+    await ctx1.close();
+    await ctx2.close();
+  });
+
+  test('Scenario 4: toolbar button enabled/disabled states', async ({ browser }) => {
+    const ctx1 = await browser.newContext();
+    const page1 = await ctx1.newPage();
+
+    await page1.goto('/');
+    await page1.getByRole('button', { name: /create room/i }).click();
+    await page1.waitForSelector('[data-testid="room-id"]', { timeout: 5000 });
+
+    // Initially both Undo and Redo should be disabled
+    await expect(page1.getByRole('button', { name: /^undo$/i })).toBeDisabled();
+    await expect(page1.getByRole('button', { name: /^redo$/i })).toBeDisabled();
+
+    // Draw a stroke to enable Undo
+    const canvas1 = page1.locator('canvas').first();
+    await canvas1.hover({ position: { x: 500, y: 400 } });
+    await page1.mouse.down();
+    await page1.mouse.move(560, 400, { steps: 5 });
+    await page1.mouse.up();
+    await page1.waitForTimeout(300);
+
+    await expect(page1.getByRole('button', { name: /^undo$/i })).toBeEnabled();
+    await expect(page1.getByRole('button', { name: /^redo$/i })).toBeDisabled();
+
+    // Undo — Redo should now be enabled
+    await page1.getByRole('button', { name: /^undo$/i }).click();
+    await page1.waitForTimeout(300);
+
+    await expect(page1.getByRole('button', { name: /^undo$/i })).toBeDisabled();
+    await expect(page1.getByRole('button', { name: /^redo$/i })).toBeEnabled();
+
+    await ctx1.close();
+  });
+});
+

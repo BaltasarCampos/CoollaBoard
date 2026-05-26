@@ -4,7 +4,7 @@ import { TOOL_NAMES, STROKE_PALETTE, BRUSH_PRESETS } from 'shared/constants.js';
 import { clearCanvas } from '../hooks/useRoom.js';
 import '../styles/components/toolbar.css';
 
-export default function Toolbar({ activeTool, onToolChange, onClear = clearCanvas, color, onColorChange, brushSize, onBrushSizeChange }) {
+export default function Toolbar({ activeTool, onToolChange, onClear = clearCanvas, color, onColorChange, brushSize, onBrushSizeChange, onUndo, canUndo = false, onRedo, canRedo = false }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   function handleConfirmClear() {
@@ -28,6 +28,12 @@ export default function Toolbar({ activeTool, onToolChange, onClear = clearCanva
       </button>
       <button className="toolbar__btn" onClick={() => setShowConfirm(true)}>
         Clear Canvas
+      </button>
+      <button className="toolbar__btn" onClick={onUndo} disabled={!canUndo}>
+        Undo
+      </button>
+      <button className="toolbar__btn" onClick={onRedo} disabled={!canRedo}>
+        Redo
       </button>
       <div className="toolbar__color-swatches">
         {STROKE_PALETTE.map((hex) => (

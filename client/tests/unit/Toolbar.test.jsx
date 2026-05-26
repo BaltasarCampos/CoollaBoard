@@ -120,3 +120,55 @@ describe('Toolbar + ConfirmDialog (Clear Canvas)', () => {
     expect(medBtn).not.toHaveClass('toolbar__size-btn--active');
   });
 });
+
+// ── Undo / Redo buttons (US1 + US3) ─────────────────────────────────────────
+
+describe('Toolbar — Undo / Redo buttons', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders an Undo button', () => {
+    render(<Toolbar {...defaultProps} onUndo={vi.fn()} canUndo={true} onRedo={vi.fn()} canRedo={false} />);
+    expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument();
+  });
+
+  it('Undo button is disabled when canUndo=false', () => {
+    render(<Toolbar {...defaultProps} onUndo={vi.fn()} canUndo={false} onRedo={vi.fn()} canRedo={false} />);
+    expect(screen.getByRole('button', { name: /undo/i })).toBeDisabled();
+  });
+
+  it('Undo button is enabled when canUndo=true', () => {
+    render(<Toolbar {...defaultProps} onUndo={vi.fn()} canUndo={true} onRedo={vi.fn()} canRedo={false} />);
+    expect(screen.getByRole('button', { name: /undo/i })).not.toBeDisabled();
+  });
+
+  it('clicking Undo button calls onUndo prop', async () => {
+    const onUndo = vi.fn();
+    render(<Toolbar {...defaultProps} onUndo={onUndo} canUndo={true} onRedo={vi.fn()} canRedo={false} />);
+    await userEvent.click(screen.getByRole('button', { name: /undo/i }));
+    expect(onUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a Redo button', () => {
+    render(<Toolbar {...defaultProps} onUndo={vi.fn()} canUndo={false} onRedo={vi.fn()} canRedo={true} />);
+    expect(screen.getByRole('button', { name: /redo/i })).toBeInTheDocument();
+  });
+
+  it('Redo button is disabled when canRedo=false', () => {
+    render(<Toolbar {...defaultProps} onUndo={vi.fn()} canUndo={false} onRedo={vi.fn()} canRedo={false} />);
+    expect(screen.getByRole('button', { name: /redo/i })).toBeDisabled();
+  });
+
+  it('Redo button is enabled when canRedo=true', () => {
+    render(<Toolbar {...defaultProps} onUndo={vi.fn()} canUndo={false} onRedo={vi.fn()} canRedo={true} />);
+    expect(screen.getByRole('button', { name: /redo/i })).not.toBeDisabled();
+  });
+
+  it('clicking Redo button calls onRedo prop', async () => {
+    const onRedo = vi.fn();
+    render(<Toolbar {...defaultProps} onUndo={vi.fn()} canUndo={false} onRedo={onRedo} canRedo={true} />);
+    await userEvent.click(screen.getByRole('button', { name: /redo/i }));
+    expect(onRedo).toHaveBeenCalledTimes(1);
+  });
+});

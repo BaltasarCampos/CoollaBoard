@@ -5,6 +5,12 @@ import {
   addUserToRoom,
   removeUserFromRoom,
   addOperation,
+  pushToUndoStack,
+  clearRedoStack,
+  resolveUndo,
+  resolveRedo,
+  getUndoRedoState,
+  clearUserHistory,
 } from '../services/roomService.js';
 import logger from '../utils/logger.js';
 
@@ -38,6 +44,8 @@ export function registerHandlers(io) {
         if (typeof ack === 'function') {
           ack({ ok: true, roomId: room.roomId, userId: session.userId });
         }
+
+        socket.emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(room.roomId, session.userId));
       } catch (err) {
         logger.error({ event: EVENTS.ROOM_CREATE, error: err.message });
         if (typeof ack === 'function') {
@@ -80,6 +88,8 @@ export function registerHandlers(io) {
       if (typeof ack === 'function') {
         ack({ ok: true, operations, userId: session.userId });
       }
+
+      socket.emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(roomId, session.userId));
     });
 
     // ── draw:stroke ──────────────────────────────────────────────────────────
@@ -102,7 +112,16 @@ export function registerHandlers(io) {
 
       if (!fullOp) return; // duplicate or invalid room
 
+      // Clear redo stack on new draw (FR-007)
+      clearRedoStack(session.roomId, session.userId);
+
+      // Push to user's undo stack
+      pushToUndoStack(session.roomId, session.userId, { ...fullOp });
+
       socket.to(session.roomId).emit(SERVER_EVENTS.DRAW_BROADCAST, fullOp);
+
+      // Emit updated undo:state to the drawing user
+      socket.emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(session.roomId, session.userId));
 
       logger.info({
         event: EVENTS.DRAW_STROKE,
@@ -134,7 +153,26 @@ export function registerHandlers(io) {
 
       if (!fullOp) return;
 
+      // Set room-level latestClearEntry (replacing any previous one)
+      const room = getRoom(session.roomId);
+      if (room) {
+        room.latestClearEntry = { operationId, timestamp: fullOp.timestamp };
+        // Push clear onto originating user's undo stack
+        pushToUndoStack(session.roomId, session.userId, { ...fullOp });
+      }
+
       io.to(session.roomId).emit(SERVER_EVENTS.CANVAS_CLEARED, fullOp);
+
+      // Emit updated undo:state to every socket in the room (all gain canUndo=true)
+      const socketsInRoom = io.sockets.adapter.rooms.get(session.roomId);
+      if (socketsInRoom) {
+        for (const socketId of socketsInRoom) {
+          const targetSession = sessions.get(socketId);
+          if (targetSession) {
+            io.to(socketId).emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(session.roomId, targetSession.userId));
+          }
+        }
+      }
 
       logger.info({
         event: EVENTS.CANVAS_CLEAR,
@@ -182,10 +220,57 @@ export function registerHandlers(io) {
       });
     });
 
+    // ── undo:request ─────────────────────────────────────────────────────────
+    socket.on(EVENTS.UNDO_REQUEST, () => {
+      const start = Date.now();
+      const session = sessions.get(socket.id);
+      if (!session?.roomId) return;
+
+      const result = resolveUndo(session.roomId, session.userId);
+      if (!result) return; // nothing to undo — silent no-op
+
+      const broadcastPayload = { type: result.type, operationId: result.operationId, userId: result.userId };
+      io.to(session.roomId).emit(SERVER_EVENTS.UNDO_BROADCAST, broadcastPayload);
+
+      if (result.type === OP_TYPE.CLEAR) {
+        // Clear undo affects all users — emit undo:state to everyone
+        const socketsInRoom = io.sockets.adapter.rooms.get(session.roomId);
+        if (socketsInRoom) {
+          for (const socketId of socketsInRoom) {
+            const targetSession = sessions.get(socketId);
+            if (targetSession) {
+              io.to(socketId).emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(session.roomId, targetSession.userId));
+            }
+          }
+        }
+        logger.info({ event: EVENTS.UNDO_REQUEST, roomId: session.roomId, userId: session.userId, operationId: result.operationId, clearedByUserId: result.userId, durationMs: Date.now() - start });
+      } else {
+        // Personal stroke undo — emit undo:state to originator only
+        socket.emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(session.roomId, session.userId));
+        logger.info({ event: EVENTS.UNDO_REQUEST, roomId: session.roomId, userId: session.userId, operationId: result.operationId, type: result.type, durationMs: Date.now() - start });
+      }
+    });
+
+    // ── redo:request ─────────────────────────────────────────────────────────
+    socket.on(EVENTS.REDO_REQUEST, () => {
+      const start = Date.now();
+      const session = sessions.get(socket.id);
+      if (!session?.roomId) return;
+
+      const result = resolveRedo(session.roomId, session.userId);
+      if (!result) return; // nothing to redo — silent no-op
+
+      io.to(session.roomId).emit(SERVER_EVENTS.REDO_BROADCAST, { operation: result.operation, userId: result.userId });
+      socket.emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(session.roomId, session.userId));
+
+      logger.info({ event: EVENTS.REDO_REQUEST, roomId: session.roomId, userId: session.userId, operationId: result.operation.operationId, type: result.operation.type, durationMs: Date.now() - start });
+    });
+
     // ── disconnect ───────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
       const session = sessions.get(socket.id);
       if (session?.roomId) {
+        clearUserHistory(session.roomId, session.userId);
         socket.to(session.roomId).emit(SERVER_EVENTS.USER_LEFT, { userId: session.userId });
         removeUserFromRoom(session.roomId, session.userId);
       }

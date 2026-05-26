@@ -404,3 +404,96 @@ describe('disconnect handler — user:left (US2)', () => {
   });
 });
 
+// ── undo:state emission after draw/clear/join (T015) ─────────────────────────
+
+describe('undo:state emissions (T015)', () => {
+  it('undo:state emitted to the drawing user after draw:stroke with canUndo=true', async () => {
+    const client = makeClient();
+    await waitForConnect(client);
+    const { roomId } = await emitWithAck(client, EVENTS.ROOM_CREATE, {});
+    await emitWithAck(client, EVENTS.ROOM_JOIN, { roomId });
+
+    const statePromise = new Promise((resolve) => {
+      client.once(SERVER_EVENTS.UNDO_STATE, resolve);
+    });
+
+    client.emit(EVENTS.DRAW_STROKE, {
+      operationId: crypto.randomUUID(),
+      type: OP_TYPE.DRAW,
+      points: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      color: '#000',
+      brushSize: 4,
+    });
+
+    const state = await statePromise;
+    expect(state.canUndo).toBe(true);
+    expect(state.canRedo).toBe(false);
+
+    client.disconnect();
+  });
+
+  it('undo:state emitted to all room sockets after canvas:clear', async () => {
+    const userA = makeClient();
+    const userB = makeClient();
+    await waitForConnect(userA);
+    await waitForConnect(userB);
+
+    const { roomId } = await emitWithAck(userA, EVENTS.ROOM_CREATE, {});
+    await emitWithAck(userA, EVENTS.ROOM_JOIN, { roomId });
+    await emitWithAck(userB, EVENTS.ROOM_JOIN, { roomId });
+
+    // Drain the undo:state received from room:join
+    await new Promise((r) => setTimeout(r, 50));
+
+    const [stateA, stateB] = await Promise.all([
+      new Promise((resolve) => { userA.once(SERVER_EVENTS.UNDO_STATE, resolve); }),
+      new Promise((resolve) => { userB.once(SERVER_EVENTS.UNDO_STATE, resolve); }),
+      (async () => {
+        await new Promise((r) => setTimeout(r, 10));
+        userA.emit(EVENTS.CANVAS_CLEAR, { operationId: crypto.randomUUID() });
+      })(),
+    ]);
+
+    expect(stateA.canUndo).toBe(true);
+    expect(stateB.canUndo).toBe(true);
+
+    userA.disconnect();
+    userB.disconnect();
+  });
+
+  it('undo:state emitted to joining socket on room:join', async () => {
+    const client = makeClient();
+    await waitForConnect(client);
+    const { roomId } = await emitWithAck(client, EVENTS.ROOM_CREATE, {});
+
+    const statePromise = new Promise((resolve) => {
+      client.once(SERVER_EVENTS.UNDO_STATE, resolve);
+    });
+
+    await emitWithAck(client, EVENTS.ROOM_JOIN, { roomId });
+
+    const state = await statePromise;
+    expect(state).toHaveProperty('canUndo');
+    expect(state).toHaveProperty('canRedo');
+
+    client.disconnect();
+  });
+
+  it('undo:state emitted to creating socket on room:create', async () => {
+    const client = makeClient();
+    await waitForConnect(client);
+
+    const statePromise = new Promise((resolve) => {
+      client.once(SERVER_EVENTS.UNDO_STATE, resolve);
+    });
+
+    await emitWithAck(client, EVENTS.ROOM_CREATE, {});
+
+    const state = await statePromise;
+    expect(state).toHaveProperty('canUndo');
+    expect(state).toHaveProperty('canRedo');
+
+    client.disconnect();
+  });
+});
+

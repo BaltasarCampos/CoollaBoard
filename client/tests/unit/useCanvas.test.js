@@ -103,4 +103,36 @@ describe('useCanvas hook', () => {
     // Both draw and erase should be visible (ERASE doesn't clear history)
     expect(visible).toHaveLength(2);
   });
+
+  describe('removeOperation()', () => {
+    it('removes an operation by operationId', () => {
+      const { result } = renderHook(() => useCanvas());
+
+      act(() => {
+        result.current.addOperation({ operationId: 'rem-1', sequenceNumber: 1, type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 1, y: 1 }], userId: 'u', timestamp: 0 });
+        result.current.addOperation({ operationId: 'rem-2', sequenceNumber: 2, type: OP_TYPE.DRAW, points: [{ x: 2, y: 2 }, { x: 3, y: 3 }], userId: 'u', timestamp: 0 });
+      });
+
+      act(() => {
+        result.current.removeOperation('rem-1');
+      });
+
+      expect(result.current.operations).toHaveLength(1);
+      expect(result.current.operations[0].operationId).toBe('rem-2');
+    });
+
+    it('is a no-op when the operationId is not present (idempotent)', () => {
+      const { result } = renderHook(() => useCanvas());
+
+      act(() => {
+        result.current.addOperation({ operationId: 'keep-1', sequenceNumber: 1, type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 1, y: 1 }], userId: 'u', timestamp: 0 });
+      });
+
+      act(() => {
+        result.current.removeOperation('nonexistent-id');
+      });
+
+      expect(result.current.operations).toHaveLength(1);
+    });
+  });
 });
