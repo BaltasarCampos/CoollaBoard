@@ -135,4 +135,39 @@ describe('useCanvas hook', () => {
       expect(result.current.operations).toHaveLength(1);
     });
   });
+
+  describe('initialOperations parameter', () => {
+    it('initialises with provided operations seeded into state', () => {
+      const seed = [
+        { operationId: 'seed-1', sequenceNumber: 1, type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 1, y: 1 }], userId: 'u', timestamp: 0 },
+        { operationId: 'seed-2', sequenceNumber: 2, type: OP_TYPE.DRAW, points: [{ x: 2, y: 2 }, { x: 3, y: 3 }], userId: 'u', timestamp: 0 },
+      ];
+
+      const { result } = renderHook(() => useCanvas(seed));
+
+      expect(result.current.operations).toHaveLength(2);
+      expect(result.current.operations[0].operationId).toBe('seed-1');
+      expect(result.current.operations[1].operationId).toBe('seed-2');
+    });
+
+    it('deduplicates when addOperation is called with an id already in initialOperations', () => {
+      const seed = [
+        { operationId: 'dup-1', sequenceNumber: 1, type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 1, y: 1 }], userId: 'u', timestamp: 0 },
+      ];
+
+      const { result } = renderHook(() => useCanvas(seed));
+
+      act(() => {
+        result.current.addOperation({ operationId: 'dup-1', sequenceNumber: 1, type: OP_TYPE.DRAW, points: [{ x: 0, y: 0 }, { x: 1, y: 1 }], userId: 'u', timestamp: 0 });
+      });
+
+      expect(result.current.operations).toHaveLength(1);
+    });
+
+    it('defaults to empty state when no initialOperations provided', () => {
+      const { result } = renderHook(() => useCanvas());
+
+      expect(result.current.operations).toHaveLength(0);
+    });
+  });
 });
