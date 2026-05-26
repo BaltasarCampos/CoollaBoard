@@ -1,44 +1,29 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import '../styles/components/canvas.css';
-import { useCanvas } from '../hooks/useCanvas.js';
 import { useCanvasRenderer } from '../hooks/useCanvasRenderer.js';
 import { usePreviewLayer } from '../hooks/usePreviewLayer.js';
-import { useUndoRedo } from '../hooks/useUndoRedo.js';
-import Toolbar from './Toolbar.jsx';
 import { createPenTool } from '../tools/penTool.js';
 import { createEraserTool } from '../tools/eraserTool.js';
-import { getSocket } from '../services/socket.js';
-import { TOOL_NAMES, SERVER_EVENTS } from 'shared/constants.js';
+import { TOOL_NAMES } from 'shared/constants.js';
 
 const penTool    = createPenTool();
 const eraserTool = createEraserTool();
 
-export default function Canvas({ activeTool, onToolChange, onClear, color, onColorChange, brushSize, onBrushSizeChange, userId, roomId, initialOperations = [] }) {
+export default function Canvas({ addOperation, removeOperation, getVisibleOperations, canUndo, canRedo, requestUndo, requestRedo, onExternalClear, activeTool, color, brushSize, userId, roomId }) {
   const canvasRef = useRef(null);
   const previewCanvasRef = useRef(null);
-  const { operations, addOperation, removeOperation, getVisibleOperations } = useCanvas();
   const { previews, setPreview, removePreview, clearAllPreviews } = usePreviewLayer();
-  const { canUndo, canRedo, requestUndo, requestRedo } = useUndoRedo({ removeOperation, addOperation });
 
-  // Hydrate initial operations on mount / when room changes
+  // Expose clearAllPreviews to RoomPage so external CANVAS_CLEARED events flush previews
   useEffect(() => {
-    for (const op of initialOperations) addOperation(op);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
-
-  // Clear all previews when canvas is cleared (FR-013)
-  useEffect(() => {
-    const socket = getSocket();
-    function onCleared() {
-      clearAllPreviews();
+    if (onExternalClear) {
+      onExternalClear.current = clearAllPreviews;
     }
-    socket.on(SERVER_EVENTS.CANVAS_CLEARED, onCleared);
-    return () => {
-      socket.off(SERVER_EVENTS.CANVAS_CLEARED, onCleared);
-    };
-  }, [clearAllPreviews]);
+  }, [onExternalClear, clearAllPreviews]);
 
-  useCanvasRenderer(canvasRef, operations, getVisibleOperations, previewCanvasRef, previews);
+  // getVisibleOperations changes reference whenever operations change — use as both
+  // "operations" dependency (for dirty-marking) and the actual renderer function
+  useCanvasRenderer(canvasRef, getVisibleOperations, getVisibleOperations, previewCanvasRef, previews);
 
   const handlePointerDown = useCallback((e) => {
     const canvas = canvasRef.current;
@@ -93,19 +78,6 @@ export default function Canvas({ activeTool, onToolChange, onClear, color, onCol
 
   return (
     <div className="canvas-wrapper">
-      <Toolbar
-        activeTool={activeTool}
-        onToolChange={onToolChange}
-        onClear={onClear}
-        color={color}
-        onColorChange={onColorChange}
-        brushSize={brushSize}
-        onBrushSizeChange={onBrushSizeChange}
-        onUndo={requestUndo}
-        canUndo={canUndo}
-        onRedo={requestRedo}
-        canRedo={canRedo}
-      />
       <canvas
         ref={canvasRef}
         className={`canvas-main${activeTool === TOOL_NAMES.ERASER ? ' canvas-main--eraser' : ''}`}
@@ -123,3 +95,4 @@ export default function Canvas({ activeTool, onToolChange, onClear, color, onCol
     </div>
   );
 }
+

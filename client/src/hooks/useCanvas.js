@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { getSocket } from '../services/socket.js';
 import { SERVER_EVENTS, OP_TYPE } from 'shared/constants.js';
 
-export function useCanvas() {
-  const [operations, setOperations] = useState([]);
+export function useCanvas(initialOperations) {
+  const [operations, setOperations] = useState(initialOperations ?? []);
 
   const addOperation = useCallback((op) => {
     setOperations((prev) => {

@@ -1,22 +1,34 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import ConnectionStatus from './ConnectionStatus.jsx';
 import Canvas from './Canvas.jsx';
+import Toolbar from './Toolbar.jsx';
 import { useRoom } from '../hooks/useRoom.js';
-import { TOOL_NAMES, DEFAULT_STROKE_COLOR, DEFAULT_BRUSH_WIDTH } from 'shared/constants.js';
+import { useCanvas } from '../hooks/useCanvas.js';
+import { useUndoRedo } from '../hooks/useUndoRedo.js';
+import { getSocket } from '../services/socket.js';
+import { TOOL_NAMES, DEFAULT_STROKE_COLOR, DEFAULT_BRUSH_WIDTH, SERVER_EVENTS } from 'shared/constants.js';
 import '../styles/components/roompage.css';
 
 export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperations = [] }) {
   const [activeTool, setActiveTool] = useState(TOOL_NAMES.PEN);
   const [color, setColor] = useState(DEFAULT_STROKE_COLOR);
   const [brushSize, setBrushSize] = useState(DEFAULT_BRUSH_WIDTH);
-  const [operations, setOperations] = useState(initialOperations);
 
-  const addOperations = useCallback((ops) => {
-    setOperations((prev) => {
-      const existingIds = new Set(prev.map((o) => o.operationId));
-      const newOps = ops.filter((o) => !existingIds.has(o.operationId));
-      return newOps.length ? [...prev, ...newOps] : prev;
-    });
+  const { operations, addOperation, removeOperation, getVisibleOperations } = useCanvas(initialOperations);
+  const { canUndo, canRedo, requestUndo, requestRedo } = useUndoRedo({ removeOperation, addOperation });
+
+  const onExternalClearRef = useRef(null);
+
+  // Flush Canvas previews when canvas is cleared externally
+  useEffect(() => {
+    const socket = getSocket();
+    function onCleared() {
+      onExternalClearRef.current?.();
+    }
+    socket.on(SERVER_EVENTS.CANVAS_CLEARED, onCleared);
+    return () => {
+      socket.off(SERVER_EVENTS.CANVAS_CLEARED, onCleared);
+    };
   }, []);
 
   const { handleClear } = useRoom({
@@ -24,7 +36,7 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
     userId,
     onRoomJoined: () => {},
     onLeaveRoom,
-    addOperations,
+    addOperations: (ops) => ops.forEach(addOperation),
     operations,
     skipInitialJoin: true,
   });
@@ -37,7 +49,7 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
       </div>
 
       <div className="room-page__canvas-area">
-        <Canvas
+        <Toolbar
           activeTool={activeTool}
           onToolChange={setActiveTool}
           onClear={handleClear}
@@ -45,9 +57,25 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
           onColorChange={setColor}
           brushSize={brushSize}
           onBrushSizeChange={setBrushSize}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={requestUndo}
+          onRedo={requestRedo}
+        />
+        <Canvas
+          addOperation={addOperation}
+          removeOperation={removeOperation}
+          getVisibleOperations={getVisibleOperations}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          requestUndo={requestUndo}
+          requestRedo={requestRedo}
+          onExternalClear={onExternalClearRef}
+          activeTool={activeTool}
+          color={color}
+          brushSize={brushSize}
           roomId={roomId}
           userId={userId}
-          initialOperations={operations}
         />
       </div>
 
@@ -55,3 +83,4 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
     </div>
   );
 }
+

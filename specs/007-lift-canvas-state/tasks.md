@@ -15,8 +15,8 @@
 
 **Purpose**: Confirm the branch and test baseline before any code changes.
 
-- [ ] T001 Verify all existing client unit tests pass: `cd client && npm test`
-- [ ] T002 Verify all server integration tests pass: `cd server && npm test`
+- [X] T001 Verify all existing client unit tests pass: `cd client && npm test`
+- [X] T002 Verify all server integration tests pass: `cd server && npm test`
 
 **Checkpoint**: Green baseline confirmed — no pre-existing failures.
 
@@ -28,8 +28,8 @@
 
 **⚠️ CRITICAL**: All user story work depends on this phase being complete first.
 
-- [ ] T003 Add unit test for `initialOperations` param in `client/tests/unit/useCanvas.test.js` — verify hook initialises with the provided operations and deduplicates correctly (write test first; confirm it fails before T004)
-- [ ] T004 Add `initialOperations` param to `useCanvas` — change `useState([])` to `useState(initialOperations ?? [])` in `client/src/hooks/useCanvas.js` (implement after T003 is red)
+- [X] T003 Add unit test for `initialOperations` param in `client/tests/unit/useCanvas.test.js` — verify hook initialises with the provided operations and deduplicates correctly (write test first; confirm it fails before T004)
+- [X] T004 Add `initialOperations` param to `useCanvas` — change `useState([])` to `useState(initialOperations ?? [])` in `client/src/hooks/useCanvas.js` (implement after T003 is red)
 
 **Checkpoint**: `useCanvas` accepts seed data; `npm test` still green.
 
@@ -43,13 +43,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Move `useCanvas` call to `RoomPage` — add `const { operations, addOperation, removeOperation, getVisibleOperations } = useCanvas(initialOperations)` in `client/src/components/RoomPage.jsx`
-- [ ] T006 [US1] Remove duplicate `useState(initialOperations)` and `addOperations` callback from `RoomPage` in `client/src/components/RoomPage.jsx`
-- [ ] T007 [US1] Move `useUndoRedo` call to `RoomPage` — add `const { canUndo, canRedo, requestUndo, requestRedo } = useUndoRedo({ removeOperation, addOperation })` in `client/src/components/RoomPage.jsx`
-- [ ] T008 [US1] Update `useRoom` call in `RoomPage` to pass `addOperations: (ops) => ops.forEach(addOperation)` (thin wrapper for reconnect delta) and `operations` — `useRoom`'s own interface is unchanged; `useCanvas` retains its `CANVAS_CLEARED` subscription internally, in `client/src/components/RoomPage.jsx`
-- [ ] T009 [US1] Add a dedicated `CANVAS_CLEARED` `useEffect` in `RoomPage` (separate from `useCanvas`'s internal subscription) that calls `onExternalClearRef.current?.()` to flush Canvas previews, in `client/src/components/RoomPage.jsx`
-- [ ] T010 [US1] Pass `onExternalClear`, `addOperation`, `removeOperation`, `getVisibleOperations`, `canUndo`, `canRedo`, `requestUndo`, `requestRedo` as props to `<Canvas>` in `client/src/components/RoomPage.jsx`
-- [ ] T011 [US1] Remove `onToolChange`, `onClear`, `onColorChange`, `onBrushSizeChange`, `initialOperations` props from the `<Canvas>` call site in `client/src/components/RoomPage.jsx`
+- [X] T005 [US1] Move `useCanvas` call to `RoomPage` — add `const { operations, addOperation, removeOperation, getVisibleOperations } = useCanvas(initialOperations)` in `client/src/components/RoomPage.jsx`
+- [X] T006 [US1] Remove duplicate `useState(initialOperations)` and `addOperations` callback from `RoomPage` in `client/src/components/RoomPage.jsx`
+- [X] T007 [US1] Move `useUndoRedo` call to `RoomPage` — add `const { canUndo, canRedo, requestUndo, requestRedo } = useUndoRedo({ removeOperation, addOperation })` in `client/src/components/RoomPage.jsx`
+- [X] T008 [US1] Update `useRoom` call in `RoomPage` to pass `addOperations: (ops) => ops.forEach(addOperation)` (thin wrapper for reconnect delta) and `operations` — `useRoom`'s own interface is unchanged; `useCanvas` retains its `CANVAS_CLEARED` subscription internally, in `client/src/components/RoomPage.jsx`
+- [X] T009 [US1] Add a dedicated `CANVAS_CLEARED` `useEffect` in `RoomPage` (separate from `useCanvas`'s internal subscription) that calls `onExternalClearRef.current?.()` to flush Canvas previews, in `client/src/components/RoomPage.jsx`
+- [X] T010 [US1] Pass `onExternalClear`, `addOperation`, `removeOperation`, `getVisibleOperations`, `canUndo`, `canRedo`, `requestUndo`, `requestRedo` as props to `<Canvas>` in `client/src/components/RoomPage.jsx`
+- [X] T011 [US1] Remove `onToolChange`, `onClear`, `onColorChange`, `onBrushSizeChange`, `initialOperations` props from the `<Canvas>` call site in `client/src/components/RoomPage.jsx`
 
 **Checkpoint**: `RoomPage` owns all collaborative state; single operations list in place.
 
@@ -63,14 +63,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Update `Canvas` prop signature — add `addOperation`, `removeOperation`, `getVisibleOperations`, `canUndo`, `canRedo`, `requestUndo`, `requestRedo`, `onExternalClear` to the destructured props. Do NOT add a raw `operations` prop — `Canvas` calls `getVisibleOperations()` directly for rendering, in `client/src/components/Canvas.jsx`
-- [ ] T013 [US2] Remove `useCanvas()` call and its destructuring from `client/src/components/Canvas.jsx`
-- [ ] T014 [US2] Remove `useUndoRedo()` call and its destructuring from `client/src/components/Canvas.jsx`
-- [ ] T015 [US2] Wire `onExternalClear` prop to `clearAllPreviews` via a ref — add `const onExternalClearRef = useRef(onExternalClear); useEffect(() => { onExternalClearRef.current = onExternalClear; }, [onExternalClear]);` and ensure preview-flush is called via `onExternalClearRef.current?.()`, in `client/src/components/Canvas.jsx`
-- [ ] T016 [US2] Remove the `useEffect` that calls `clearAllPreviews` on `CANVAS_CLEARED` from `client/src/components/Canvas.jsx` (now handled in RoomPage)
-- [ ] T017 [US2] Remove the hydration `useEffect` (the one iterating `initialOperations`) from `client/src/components/Canvas.jsx`
-- [ ] T018 [US2] Remove `initialOperations` and tool-callback props (`onToolChange`, `onClear`, `onColorChange`, `onBrushSizeChange`) from the `Canvas` function signature in `client/src/components/Canvas.jsx`
-- [ ] T019 [US2] Remove `import { useCanvas }`, `import { useUndoRedo }`, and `import Toolbar` from `client/src/components/Canvas.jsx`
+- [X] T012 [US2] Update `Canvas` prop signature — add `addOperation`, `removeOperation`, `getVisibleOperations`, `canUndo`, `canRedo`, `requestUndo`, `requestRedo`, `onExternalClear` to the destructured props. Do NOT add a raw `operations` prop — `Canvas` calls `getVisibleOperations()` directly for rendering, in `client/src/components/Canvas.jsx`
+- [X] T013 [US2] Remove `useCanvas()` call and its destructuring from `client/src/components/Canvas.jsx`
+- [X] T014 [US2] Remove `useUndoRedo()` call and its destructuring from `client/src/components/Canvas.jsx`
+- [X] T015 [US2] Wire `onExternalClear` prop to `clearAllPreviews` via a ref — add `const onExternalClearRef = useRef(onExternalClear); useEffect(() => { onExternalClearRef.current = onExternalClear; }, [onExternalClear]);` and ensure preview-flush is called via `onExternalClearRef.current?.()`, in `client/src/components/Canvas.jsx`
+- [X] T016 [US2] Remove the `useEffect` that calls `clearAllPreviews` on `CANVAS_CLEARED` from `client/src/components/Canvas.jsx` (now handled in RoomPage)
+- [X] T017 [US2] Remove the hydration `useEffect` (the one iterating `initialOperations`) from `client/src/components/Canvas.jsx`
+- [X] T018 [US2] Remove `initialOperations` and tool-callback props (`onToolChange`, `onClear`, `onColorChange`, `onBrushSizeChange`) from the `Canvas` function signature in `client/src/components/Canvas.jsx`
+- [X] T019 [US2] Remove `import { useCanvas }`, `import { useUndoRedo }`, and `import Toolbar` from `client/src/components/Canvas.jsx`
 
 **Checkpoint**: `Canvas.jsx` imports are clean; all pointer handlers work through props.
 
@@ -84,10 +84,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Add `import Toolbar from './Toolbar.jsx'` to `client/src/components/RoomPage.jsx`
-- [ ] T021 [US3] Render `<Toolbar>` inside `.room-page__canvas-area` as a sibling of `<Canvas>` — pass `activeTool`, `onToolChange`, `onClear={handleClear}`, `color`, `onColorChange`, `brushSize`, `onBrushSizeChange`, `canUndo`, `canRedo`, `onUndo={requestUndo}`, `onRedo={requestRedo}` in `client/src/components/RoomPage.jsx`
-- [ ] T022 [US3] Remove `<Toolbar>` render and all its props from `client/src/components/Canvas.jsx` (should already be gone from US2 import removal — verify and remove JSX)
-- [ ] T023 [US3] Verify `.canvas-wrapper` in `Canvas` now wraps only the two `<canvas>` elements in `client/src/components/Canvas.jsx`
+- [X] T020 [US3] Add `import Toolbar from './Toolbar.jsx'` to `client/src/components/RoomPage.jsx`
+- [X] T021 [US3] Render `<Toolbar>` inside `.room-page__canvas-area` as a sibling of `<Canvas>` — pass `activeTool`, `onToolChange`, `onClear={handleClear}`, `color`, `onColorChange`, `brushSize`, `onBrushSizeChange`, `canUndo`, `canRedo`, `onUndo={requestUndo}`, `onRedo={requestRedo}` in `client/src/components/RoomPage.jsx`
+- [X] T022 [US3] Remove `<Toolbar>` render and all its props from `client/src/components/Canvas.jsx` (should already be gone from US2 import removal — verify and remove JSX)
+- [X] T023 [US3] Verify `.canvas-wrapper` in `Canvas` now wraps only the two `<canvas>` elements in `client/src/components/Canvas.jsx`
 
 **Checkpoint**: React DevTools shows `Toolbar` as sibling of `Canvas` under `RoomPage`.
 
@@ -97,11 +97,11 @@
 
 **Purpose**: Confirm all tests pass, no regressions, and the implementation matches the spec.
 
-- [ ] T024 [P] Run full client unit test suite and confirm all 14 test files pass: `cd client && npm test`
-- [ ] T025 [P] Run server integration tests and confirm all pass: `cd server && npm test`
+- [X] T024 [P] Run full client unit test suite and confirm all 14 test files pass: `cd client && npm test`
+- [X] T025 [P] Run server integration tests and confirm all pass: `cd server && npm test`
 - [ ] T026 Manual smoke test per [quickstart.md](quickstart.md) — draw, receive remote stroke, undo, redo, clear in a live room
-- [ ] T027 Confirm `Canvas.jsx` no longer imports `useCanvas`, `useUndoRedo`, or `Toolbar` (grep check: `grep -n "useCanvas\|useUndoRedo\|Toolbar" client/src/components/Canvas.jsx`)
-- [ ] T028 Confirm `RoomPage.jsx` no longer has a duplicate `useState(initialOperations)` or `addOperations` array-merge callback (grep check: `grep -n "addOperations\|useState(initial" client/src/components/RoomPage.jsx`)
+- [X] T027 Confirm `Canvas.jsx` no longer imports `useCanvas`, `useUndoRedo`, or `Toolbar` (grep check: `grep -n "useCanvas\|useUndoRedo\|Toolbar" client/src/components/Canvas.jsx`)
+- [X] T028 Confirm `RoomPage.jsx` no longer has a duplicate `useState(initialOperations)` or `addOperations` array-merge callback (grep check: `grep -n "addOperations\|useState(initial" client/src/components/RoomPage.jsx`)
 - [ ] T029 [P] Run E2E tests to validate full collaborative session — `cd e2e && npx playwright test` (covers SC-005 with automated multi-user draw, undo/redo, sync per constitution Principle I)
 
 ---
