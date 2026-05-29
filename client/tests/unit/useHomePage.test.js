@@ -43,10 +43,11 @@ describe('useHomePage hook', () => {
     socketService.joinRoom.mockResolvedValue({ operations: [], userId: 'u1' });
     const { result } = renderHook(() => useHomePage({ onRoomJoined }));
 
+    act(() => result.current.handleDisplayNameChange({ target: { value: 'Alice' } }));
     act(() => result.current.handleInputChange({ target: { value: 'ABC123' } }));
     await act(async () => result.current.handleJoin());
 
-    expect(socketService.joinRoom).toHaveBeenCalledWith('ABC123');
+    expect(socketService.joinRoom).toHaveBeenCalledWith('ABC123', 'Alice');
     expect(onRoomJoined).toHaveBeenCalled();
   });
 
@@ -54,9 +55,10 @@ describe('useHomePage hook', () => {
     socketService.createRoom.mockResolvedValue({ roomId: 'NEW123', userId: 'u1' });
     const { result } = renderHook(() => useHomePage({ onRoomJoined }));
 
+    act(() => result.current.handleDisplayNameChange({ target: { value: 'Alice' } }));
     await act(async () => result.current.handleCreate());
 
-    expect(socketService.createRoom).toHaveBeenCalledTimes(1);
+    expect(socketService.createRoom).toHaveBeenCalledWith('Alice');
     expect(onRoomJoined).toHaveBeenCalled();
   });
 

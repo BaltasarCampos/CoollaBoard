@@ -63,4 +63,9 @@ describe('socket.js adapter', () => {
     expect(cb).toHaveBeenCalledWith('Connected');
     socketModule.offConnectionStatus(cb);
   });
+
+  it('emitLeaveRoom() emits room:leave with the roomId', () => {
+    socketModule.emitLeaveRoom('ABC123');
+    expect(mockSocket.emit).toHaveBeenCalledWith('room:leave', { roomId: 'ABC123' });
+  });
 });

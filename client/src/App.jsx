@@ -3,16 +3,18 @@ import HomePage from './components/HomePage.jsx';
 import RoomPage from './components/RoomPage.jsx';
 
 export default function App() {
-  const [roomId, setRoomId]         = useState(null);
-  const [userId, setUserId]         = useState(null);
-  const [message, setMessage]       = useState('');
-  const [initialOps, setInitialOps] = useState([]);
+  const [roomId, setRoomId]                       = useState(null);
+  const [userId, setUserId]                       = useState(null);
+  const [message, setMessage]                     = useState('');
+  const [initialOps, setInitialOps]               = useState([]);
+  const [initialParticipants, setInitialParticipants] = useState([]);
 
-  function handleRoomJoined({ roomId: rid, userId: uid, operations = [] }) {
+  function handleRoomJoined({ roomId: rid, userId: uid, operations = [], participants = [] }) {
     setRoomId(rid);
     setUserId(uid);
     setMessage('');
     setInitialOps(operations);
+    setInitialParticipants(participants);
   }
 
   function handleLeaveRoom(msg = '') {
@@ -20,6 +22,7 @@ export default function App() {
     setUserId(null);
     setMessage(msg);
     setInitialOps([]);
+    setInitialParticipants([]);
   }
 
   if (roomId) {
@@ -28,6 +31,7 @@ export default function App() {
         roomId={roomId}
         userId={userId}
         initialOperations={initialOps}
+        initialParticipants={initialParticipants}
         onLeaveRoom={handleLeaveRoom}
       />
     );

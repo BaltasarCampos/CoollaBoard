@@ -24,7 +24,7 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Verify baseline stability before introducing new code.
 
-- [ ] T001 Verify all existing tests pass by running `npm test` in `client/` and `server/`
+- [X] T001 Verify all existing tests pass by running `npm test` in `client/` and `server/`
 
 ---
 
@@ -34,11 +34,11 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Add `PARTICIPANTS_UPDATED: 'participants:updated'` to `SERVER_EVENTS` in `shared/constants.js`
-- [ ] T003 [P] Update `server/src/services/roomService.js`: add `userDisplayNames: new Map()` to room object in `createRoom()`; update `addUserToRoom(roomId, userId, displayName)` to store the name; update `removeUserFromRoom` to delete from `userDisplayNames`; add exported `getParticipants(roomId)` returning `Array<{ userId, displayName }>`
-- [ ] T004 [P] Update `client/src/services/socket.js`: add `displayName` parameter to `createRoom(displayName)` and `joinRoom(roomId, displayName, lastSequence)`; include it in the emitted payloads; resolve with `participants` array from ack
-- [ ] T005 [P] Update `client/src/hooks/useHomePage.js`: add `displayName` state, setter, and simple validation (non-empty after trim, max 30 chars); pass `displayName` to `createRoom` and `joinRoom` calls
-- [ ] T006 Update `client/src/components/HomePage.jsx`: add a display-name text input field bound to `displayName` from `useHomePage.js`; disable create/join buttons when display name is empty (depends on T005)
+- [X] T002 Add `PARTICIPANTS_UPDATED: 'participants:updated'` to `SERVER_EVENTS` in `shared/constants.js`
+- [X] T003 [P] Update `server/src/services/roomService.js`: add `userDisplayNames: new Map()` to room object in `createRoom()`; update `addUserToRoom(roomId, userId, displayName)` to store the name; update `removeUserFromRoom` to delete from `userDisplayNames`; add exported `getParticipants(roomId)` returning `Array<{ userId, displayName }>`
+- [X] T004 [P] Update `client/src/services/socket.js`: add `displayName` parameter to `createRoom(displayName)` and `joinRoom(roomId, displayName, lastSequence)`; include it in the emitted payloads; resolve with `participants` array from ack
+- [X] T005 [P] Update `client/src/hooks/useHomePage.js`: add `displayName` state, setter, and simple validation (non-empty after trim, max 30 chars); pass `displayName` to `createRoom` and `joinRoom` calls
+- [X] T006 Update `client/src/components/HomePage.jsx`: add a display-name text input field bound to `displayName` from `useHomePage.js`; disable create/join buttons when display name is empty (depends on T005)
 
 **Checkpoint**: Shared constant exists, server can store/return participant names, client submits display names — user story implementation can now begin.
 
@@ -54,17 +54,17 @@ description: "Task list template for feature implementation"
 
 > **Write these tests FIRST; ensure they FAIL before writing implementation code.**
 
-- [ ] T007 [P] [US1] Write unit tests for initial state of `useParticipants` hook in `client/tests/unit/useParticipants.test.js`: initialised with `initialParticipants` → `participants` equals that array and `isLoading` is `false`; initialised with empty array → `isLoading` is `false` and `participants` is `[]`
-- [ ] T008 [P] [US1] Write unit tests for `ParticipantsPanel` in `client/tests/unit/ParticipantsPanel.test.jsx`: renders a list of participant names; shows "Loading…" when `isLoading` is `true`; renders correctly with an empty list
+- [X] T007 [P] [US1] Write unit tests for initial state of `useParticipants` hook in `client/tests/unit/useParticipants.test.js`: initialised with `initialParticipants` → `participants` equals that array and `isLoading` is `false`; initialised with empty array → `isLoading` is `false` and `participants` is `[]`
+- [X] T008 [P] [US1] Write unit tests for `ParticipantsPanel` in `client/tests/unit/ParticipantsPanel.test.jsx`: renders a list of participant names; shows "Loading…" when `isLoading` is `true`; renders correctly with an empty list
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Update `server/src/handlers/eventHandlers.js`: import `getParticipants` from roomService; in `room:create` handler read `displayName` from payload (trim, default `'Unknown'`), store in session, pass to `addUserToRoom`, include `participants: getParticipants(roomId)` in ack; apply same changes to `room:join` handler; update sessions initialiser to `{ userId, roomId: null, displayName: null }` (depends on T003)
-- [ ] T010 [US1] Create `client/src/hooks/useParticipants.js`: accept `initialParticipants` param; initialise `participants` to `initialParticipants` and `isLoading` to `false`; export `{ participants, isLoading }` (depends on T007, T002)
-- [ ] T011 [P] [US1] Create `client/src/styles/components/participantspanel.css`: panel fixed-width (`220px`) right sidebar layout, fixed height derived from viewport minus header (e.g., `height: calc(100vh - var(--header-height))`), `overflow-y: auto`, `overflow: hidden; text-overflow: ellipsis; white-space: nowrap` on name items, basic list reset styles
-- [ ] T012 [US1] Create `client/src/components/ParticipantsPanel.jsx`: accepts `participants`, `isLoading`, and `currentUserId` props; renders "Loading…" when `isLoading` is `true`; renders a `<ul>` of participant names otherwise; imports `participantspanel.css` (depends on T010, T011)
-- [ ] T013 [US1] Update `client/src/hooks/useRoom.js`: extract `participants` array from `room:join` and `room:create` ack payloads; expose it from the hook return value (depends on T009)
-- [ ] T014 [US1] Update `client/src/components/RoomPage.jsx`: import and render `<ParticipantsPanel>` as a sibling of `.room-page__canvas-area`; pass `participants` and `isLoading` from `useParticipants(initialParticipants)` bootstrapped with ack data from `useRoom`; pass `currentUserId` from `useRoom` (depends on T012, T013)
+- [X] T009 [US1] Update `server/src/handlers/eventHandlers.js`: import `getParticipants` from roomService; in `room:create` handler read `displayName` from payload (trim, default `'Unknown'`), store in session, pass to `addUserToRoom`, include `participants: getParticipants(roomId)` in ack; apply same changes to `room:join` handler; update sessions initialiser to `{ userId, roomId: null, displayName: null }` (depends on T003)
+- [X] T010 [US1] Create `client/src/hooks/useParticipants.js`: accept `initialParticipants` param; initialise `participants` to `initialParticipants` and `isLoading` to `false`; export `{ participants, isLoading }` (depends on T007, T002)
+- [X] T011 [P] [US1] Create `client/src/styles/components/participantspanel.css`: panel fixed-width (`220px`) right sidebar layout, fixed height derived from viewport minus header (e.g., `height: calc(100vh - var(--header-height))`), `overflow-y: auto`, `overflow: hidden; text-overflow: ellipsis; white-space: nowrap` on name items, basic list reset styles
+- [X] T012 [US1] Create `client/src/components/ParticipantsPanel.jsx`: accepts `participants`, `isLoading`, and `currentUserId` props; renders "Loading…" when `isLoading` is `true`; renders a `<ul>` of participant names otherwise; imports `participantspanel.css` (depends on T010, T011)
+- [X] T013 [US1] Update `client/src/hooks/useRoom.js`: extract `participants` array from `room:join` and `room:create` ack payloads; expose it from the hook return value (depends on T009)
+- [X] T014 [US1] Update `client/src/components/RoomPage.jsx`: import and render `<ParticipantsPanel>` as a sibling of `.room-page__canvas-area`; pass `participants` and `isLoading` from `useParticipants(initialParticipants)` bootstrapped with ack data from `useRoom`; pass `currentUserId` from `useRoom` (depends on T012, T013)
 
 **Checkpoint**: User Story 1 is fully functional. A user joining a room sees all participant names immediately. Verify with two browser tabs.
 
@@ -80,13 +80,13 @@ description: "Task list template for feature implementation"
 
 > **Write these tests FIRST; ensure they FAIL before writing implementation code.**
 
-- [ ] T015 [P] [US2] Extend `client/tests/unit/useParticipants.test.js`: receiving a `participants:updated` socket event updates `participants` to the new list; unmounting the component unsubscribes the listener
+- [X] T015 [P] [US2] Extend `client/tests/unit/useParticipants.test.js`: receiving a `participants:updated` socket event updates `participants` to the new list; unmounting the component unsubscribes the listener
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Update `server/src/handlers/eventHandlers.js` `disconnect` handler: after `removeUserFromRoom`, emit `SERVER_EVENTS.PARTICIPANTS_UPDATED` with `{ participants: getParticipants(roomId) }` via `socket.to(roomId).emit` to remaining members (depends on T009)
-- [ ] T017 [US2] Update `server/src/handlers/eventHandlers.js` `room:join` handler: after the ack is sent, broadcast `SERVER_EVENTS.PARTICIPANTS_UPDATED` with the full list to the entire room via `io.to(roomId).emit`; add the same broadcast to `room:create` (single-member state) (depends on T016)
-- [ ] T018 [US2] Update `client/src/hooks/useParticipants.js`: subscribe to `SERVER_EVENTS.PARTICIPANTS_UPDATED`; on receipt set `participants` to `event.participants`; unsubscribe on unmount (depends on T015, T017)
+- [X] T016 [US2] Update `server/src/handlers/eventHandlers.js` `disconnect` handler: after `removeUserFromRoom`, emit `SERVER_EVENTS.PARTICIPANTS_UPDATED` with `{ participants: getParticipants(roomId) }` via `socket.to(roomId).emit` to remaining members (depends on T009)
+- [X] T017 [US2] Update `server/src/handlers/eventHandlers.js` `room:join` handler: after the ack is sent, broadcast `SERVER_EVENTS.PARTICIPANTS_UPDATED` with the full list to the entire room via `io.to(roomId).emit`; add the same broadcast to `room:create` (single-member state) (depends on T016)
+- [X] T018 [US2] Update `client/src/hooks/useParticipants.js`: subscribe to `SERVER_EVENTS.PARTICIPANTS_UPDATED`; on receipt set `participants` to `event.participants`; unsubscribe on unmount (depends on T015, T017)
 
 **Checkpoint**: User Stories 1 and 2 are both functional. The panel reflects the live participant set at all times.
 
@@ -102,12 +102,12 @@ description: "Task list template for feature implementation"
 
 > **Write these tests FIRST; ensure they FAIL before writing implementation code.**
 
-- [ ] T019 [P] [US3] Extend `client/tests/unit/ParticipantsPanel.test.jsx`: when `currentUserId` matches a participant's `userId`, that entry renders with "(You)" appended and a `data-self` or CSS class distinguishing it; other entries are unaffected
+- [X] T019 [P] [US3] Extend `client/tests/unit/ParticipantsPanel.test.jsx`: when `currentUserId` matches a participant's `userId`, that entry renders with "(You)" appended and a `data-self` or CSS class distinguishing it; other entries are unaffected
 
 ### Implementation for User Story 3
 
-- [ ] T020 [P] [US3] Update `client/src/styles/components/participantspanel.css`: add `.participants-panel__item--self` rule applying `font-weight: bold` to self-highlight the current user's entry (depends on T011)
-- [ ] T021 [US3] Update `client/src/components/ParticipantsPanel.jsx`: for each participant, if `participant.userId === currentUserId`, render `"{displayName} (You)"` and apply `participants-panel__item--self` CSS class; confirm `RoomPage.jsx` already passes `currentUserId` correctly (no change expected there) (depends on T019, T020)
+- [X] T020 [P] [US3] Update `client/src/styles/components/participantspanel.css`: add `.participants-panel__item--self` rule applying `font-weight: bold` to self-highlight the current user's entry (depends on T011)
+- [X] T021 [US3] Update `client/src/components/ParticipantsPanel.jsx`: for each participant, if `participant.userId === currentUserId`, render `"{displayName} (You)"` and apply `participants-panel__item--self` CSS class; confirm `RoomPage.jsx` already passes `currentUserId` correctly (no change expected there) (depends on T019, T020)
 
 **Checkpoint**: All three user stories are functional. Self-identification is visually clear at a glance.
 
@@ -117,8 +117,8 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Observability, edge-case hardening, and final validation.
 
-- [ ] T023 [P] Add structured server-side log entries for participant join and leave in `server/src/handlers/eventHandlers.js`: log `{ timestamp, level: 'INFO', event: 'participant:join'|'participant:leave', roomId, userId, durationMs }` (and optionally `displayName`) using the existing logging pattern from `server/utils/logger.js` — must satisfy Principle VII
-- [ ] T024 Run all quickstart.md validation scenarios: `npm test` in `client/` and `server/`; confirm the overflow/scroll, loading state, and reconnect edge cases pass; confirm no canvas operation regression
+- [X] T023 [P] Add structured server-side log entries for participant join and leave in `server/src/handlers/eventHandlers.js`: log `{ timestamp, level: 'INFO', event: 'participant:join'|'participant:leave', roomId, userId, durationMs }` (and optionally `displayName`) using the existing logging pattern from `server/utils/logger.js` — must satisfy Principle VII
+- [X] T024 Run all quickstart.md validation scenarios: `npm test` in `client/` and `server/`; confirm the overflow/scroll, loading state, and reconnect edge cases pass; confirm no canvas operation regression
 
 ---
 

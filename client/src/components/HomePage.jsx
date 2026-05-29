@@ -4,7 +4,7 @@ import { ROOM_ID_LENGTH } from 'shared/constants.js';
 import '../styles/components/homepage.css';
 
 export default function HomePage({ onRoomJoined, message }) {
-  const { input, error, loading, handleInputChange, handleCreate, handleJoin } = useHomePage({ onRoomJoined });
+  const { input, displayName, isDisplayNameValid, error, loading, handleInputChange, handleDisplayNameChange, handleCreate, handleJoin } = useHomePage({ onRoomJoined });
 
   return (
     <div className="home-page">
@@ -12,7 +12,18 @@ export default function HomePage({ onRoomJoined, message }) {
 
       {message && <p className="home-page__message--warning">{message}</p>}
 
-      <button className="btn" onClick={handleCreate} disabled={loading}>
+      <div className="home-page__display-name-row">
+        <input
+          className="input input--display-name"
+          type="text"
+          placeholder="Your name"
+          value={displayName}
+          onChange={handleDisplayNameChange}
+          maxLength={30}
+        />
+      </div>
+
+      <button className="btn" onClick={handleCreate} disabled={loading || !isDisplayNameValid}>
         Create Room
       </button>
 
@@ -27,7 +38,7 @@ export default function HomePage({ onRoomJoined, message }) {
           onChange={handleInputChange}
           maxLength={ROOM_ID_LENGTH}
         />
-        <button className="btn" onClick={handleJoin} disabled={loading}>
+        <button className="btn" onClick={handleJoin} disabled={loading || !isDisplayNameValid}>
           Join Room
         </button>
       </div>

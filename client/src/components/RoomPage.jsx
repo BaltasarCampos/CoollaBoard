@@ -2,20 +2,23 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import ConnectionStatus from './ConnectionStatus.jsx';
 import Canvas from './Canvas.jsx';
 import Toolbar from './Toolbar.jsx';
+import ParticipantsPanel from './ParticipantsPanel.jsx';
 import { useRoom } from '../hooks/useRoom.js';
 import { useCanvas } from '../hooks/useCanvas.js';
 import { useUndoRedo } from '../hooks/useUndoRedo.js';
-import { getSocket } from '../services/socket.js';
+import { useParticipants } from '../hooks/useParticipants.js';
+import { getSocket, emitLeaveRoom } from '../services/socket.js';
 import { TOOL_NAMES, DEFAULT_STROKE_COLOR, DEFAULT_BRUSH_WIDTH, SERVER_EVENTS } from 'shared/constants.js';
 import '../styles/components/roompage.css';
 
-export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperations = [] }) {
+export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperations = [], initialParticipants = [] }) {
   const [activeTool, setActiveTool] = useState(TOOL_NAMES.PEN);
   const [color, setColor] = useState(DEFAULT_STROKE_COLOR);
   const [brushSize, setBrushSize] = useState(DEFAULT_BRUSH_WIDTH);
 
   const { operations, addOperation, removeOperation, getVisibleOperations } = useCanvas(initialOperations);
   const { canUndo, canRedo, requestUndo, requestRedo } = useUndoRedo({ removeOperation, addOperation });
+  const { participants, isLoading: participantsLoading } = useParticipants(initialParticipants);
 
   const onExternalClearRef = useRef(null);
 
@@ -45,7 +48,7 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
     <div className="room-page">
       <div className="room-page__header">
         <span data-testid="room-id" className="room-page__room-id">{roomId}</span>
-        <button className="btn" onClick={() => onLeaveRoom('')}>Leave</button>
+        <button className="btn" onClick={() => { emitLeaveRoom(roomId); onLeaveRoom(''); }}>Leave</button>
       </div>
 
       <div className="room-page__canvas-area">
@@ -78,6 +81,12 @@ export default function RoomPage({ roomId, userId, onLeaveRoom, initialOperation
           userId={userId}
         />
       </div>
+
+      <ParticipantsPanel
+        participants={participants}
+        isLoading={participantsLoading}
+        currentUserId={userId}
+      />
 
       <ConnectionStatus />
     </div>

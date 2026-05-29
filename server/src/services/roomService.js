@@ -35,6 +35,7 @@ export function createRoom() {
     operations: [],
     nextSequence: 1,
     connectedUsers: new Set(),
+    userDisplayNames: new Map(),
     gracePeriodTimer: null,
     createdAt: new Date(),
     lastActivityAt: new Date(),
@@ -57,7 +58,7 @@ export function deleteRoom(roomId) {
   seenOps.delete(roomId);
 }
 
-export function addUserToRoom(roomId, userId) {
+export function addUserToRoom(roomId, userId, displayName) {
   const room = getRoom(roomId);
   if (!room) return false;
 
@@ -68,6 +69,7 @@ export function addUserToRoom(roomId, userId) {
   }
 
   room.connectedUsers.add(userId);
+  room.userDisplayNames.set(userId, displayName ?? 'Unknown');
   room.lastActivityAt = new Date();
   return true;
 }
@@ -77,6 +79,7 @@ export function removeUserFromRoom(roomId, userId) {
   if (!room) return;
 
   room.connectedUsers.delete(userId);
+  room.userDisplayNames.delete(userId);
   room.lastActivityAt = new Date();
 
   if (room.connectedUsers.size === 0) {
@@ -84,6 +87,15 @@ export function removeUserFromRoom(roomId, userId) {
       deleteRoom(roomId);
     }, ROOM_GRACE_PERIOD_MS);
   }
+}
+
+export function getParticipants(roomId) {
+  const room = getRoom(roomId);
+  if (!room) return [];
+  return Array.from(room.connectedUsers).map((userId) => ({
+    userId,
+    displayName: room.userDisplayNames.get(userId) ?? 'Unknown',
+  }));
 }
 
 export function addOperation(roomId, op) {

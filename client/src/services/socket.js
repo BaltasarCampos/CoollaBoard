@@ -36,20 +36,21 @@ export function offConnectionStatus(cb) {
   statusCallbacks.delete(cb);
 }
 
-export function createRoom() {
+export function createRoom(displayName) {
   return new Promise((resolve, reject) => {
-    socket.emit(EVENTS.ROOM_CREATE, {}, (ack) => {
-      if (ack?.ok) resolve({ roomId: ack.roomId, userId: ack.userId });
+    socket.emit(EVENTS.ROOM_CREATE, { displayName }, (ack) => {
+      if (ack?.ok) resolve({ roomId: ack.roomId, userId: ack.userId, participants: ack.participants ?? [] });
       else reject(new Error(ack?.error || ERROR_CODES.SERVER_ERROR));
     });
   });
 }
 
-export function joinRoom(roomId, lastSequence) {
+export function joinRoom(roomId, displayName, lastSequence) {
   return new Promise((resolve, reject) => {
-    const payload = lastSequence != null ? { roomId, lastSequence } : { roomId };
+    const payload = { roomId, displayName };
+    if (lastSequence != null) payload.lastSequence = lastSequence;
     socket.emit(EVENTS.ROOM_JOIN, payload, (ack) => {
-      if (ack?.ok) resolve({ operations: ack.operations, userId: ack.userId });
+      if (ack?.ok) resolve({ operations: ack.operations, userId: ack.userId, participants: ack.participants ?? [] });
       else reject(new Error(ack?.error || ERROR_CODES.SERVER_ERROR));
     });
   });
@@ -77,4 +78,8 @@ export function emitUndoRequest() {
 
 export function emitRedoRequest() {
   socket.emit(EVENTS.REDO_REQUEST, {});
+}
+
+export function emitLeaveRoom(roomId) {
+  socket.emit(EVENTS.ROOM_LEAVE, { roomId });
 }

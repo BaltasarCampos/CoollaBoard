@@ -24,6 +24,8 @@ describe('HomePage', () => {
     socketService.createRoom.mockResolvedValue({ roomId: 'ABC123', userId: 'u1' });
     render(<HomePage onRoomJoined={onRoomJoined} message="" />);
 
+    const nameInput = screen.getByPlaceholderText(/your name/i);
+    await userEvent.type(nameInput, 'Alice');
     await userEvent.click(screen.getByRole('button', { name: /create room/i }));
     expect(socketService.createRoom).toHaveBeenCalledTimes(1);
   });
@@ -31,6 +33,8 @@ describe('HomePage', () => {
   it('shows inline error when join input has fewer than 6 chars', async () => {
     render(<HomePage onRoomJoined={onRoomJoined} message="" />);
 
+    const nameInput = screen.getByPlaceholderText(/your name/i);
+    await userEvent.type(nameInput, 'Alice');
     const input = screen.getByPlaceholderText(/room id/i);
     await userEvent.type(input, 'ABC');
     await userEvent.click(screen.getByRole('button', { name: /join room/i }));
@@ -42,6 +46,8 @@ describe('HomePage', () => {
   it('shows inline error for non-alphanumeric characters in room ID', async () => {
     render(<HomePage onRoomJoined={onRoomJoined} message="" />);
 
+    const nameInput = screen.getByPlaceholderText(/your name/i);
+    await userEvent.type(nameInput, 'Alice');
     const input = screen.getByPlaceholderText(/room id/i);
     await userEvent.type(input, 'ABC!@#');
     await userEvent.click(screen.getByRole('button', { name: /join room/i }));
@@ -54,12 +60,14 @@ describe('HomePage', () => {
     socketService.joinRoom.mockResolvedValue({ operations: [] });
     render(<HomePage onRoomJoined={onRoomJoined} message="" />);
 
+    const nameInput = screen.getByPlaceholderText(/your name/i);
+    await userEvent.type(nameInput, 'Alice');
     const input = screen.getByPlaceholderText(/room id/i);
     await userEvent.type(input, 'abc123');
     await userEvent.click(screen.getByRole('button', { name: /join room/i }));
 
     await waitFor(() => {
-      expect(socketService.joinRoom).toHaveBeenCalledWith('ABC123');
+      expect(socketService.joinRoom).toHaveBeenCalledWith('ABC123', 'Alice');
     });
   });
 
@@ -67,6 +75,8 @@ describe('HomePage', () => {
     socketService.joinRoom.mockRejectedValue(new Error('ROOM_NOT_FOUND'));
     render(<HomePage onRoomJoined={onRoomJoined} message="" />);
 
+    const nameInput = screen.getByPlaceholderText(/your name/i);
+    await userEvent.type(nameInput, 'Alice');
     const input = screen.getByPlaceholderText(/room id/i);
     await userEvent.type(input, 'ZZZZZZ');
     await userEvent.click(screen.getByRole('button', { name: /join room/i }));
@@ -80,6 +90,8 @@ describe('HomePage', () => {
     socketService.joinRoom.mockResolvedValue({ operations: [] });
     render(<HomePage onRoomJoined={onRoomJoined} message="" />);
 
+    const nameInput = screen.getByPlaceholderText(/your name/i);
+    await userEvent.type(nameInput, 'Alice');
     const input = screen.getByPlaceholderText(/room id/i);
     await userEvent.type(input, 'ABCDEF');
     await userEvent.click(screen.getByRole('button', { name: /join room/i }));

@@ -2,6 +2,7 @@
 export const EVENTS = {
   ROOM_CREATE:    'room:create',
   ROOM_JOIN:      'room:join',
+  ROOM_LEAVE:     'room:leave',
   DRAW_STROKE:    'draw:stroke',
   CANVAS_CLEAR:   'canvas:clear',
   STROKE_PREVIEW: 'stroke:preview',
@@ -23,6 +24,7 @@ export const SERVER_EVENTS = {
   UNDO_BROADCAST:            'undo:broadcast',
   REDO_BROADCAST:            'redo:broadcast',
   UNDO_STATE:                'undo:state',
+  PARTICIPANTS_UPDATED:      'participants:updated',
 };
 
 // Canvas virtual coordinate space
