@@ -11,6 +11,7 @@ import {
   resolveRedo,
   getUndoRedoState,
   clearUserHistory,
+  getParticipants,
 } from '../services/roomService.js';
 import logger from '../utils/logger.js';
 
@@ -20,19 +21,21 @@ const sessions = new Map();
 export function registerHandlers(io) {
   io.on('connection', (socket) => {
     const userId = crypto.randomUUID();
-    sessions.set(socket.id, { userId, roomId: null });
+    sessions.set(socket.id, { userId, roomId: null, displayName: null });
     logger.info({ event: 'socket:connect', userId, socketId: socket.id });
 
     // ── room:create ──────────────────────────────────────────────────────────
-    socket.on(EVENTS.ROOM_CREATE, (_payload, ack) => {
+    socket.on(EVENTS.ROOM_CREATE, (payload, ack) => {
       const start = Date.now();
       try {
+        const displayName = (payload?.displayName ?? '').trim() || 'Unknown';
         const room = createRoom();
         const session = sessions.get(socket.id);
 
         session.roomId = room.roomId;
+        session.displayName = displayName;
         socket.join(room.roomId);
-        addUserToRoom(room.roomId, session.userId);
+        addUserToRoom(room.roomId, session.userId, displayName);
 
         logger.info({
           event: EVENTS.ROOM_CREATE,
@@ -40,11 +43,21 @@ export function registerHandlers(io) {
           userId: session.userId,
           durationMs: Date.now() - start,
         });
+        logger.info({
+          timestamp: new Date().toISOString(),
+          level: 'INFO',
+          event: 'participant:join',
+          roomId: room.roomId,
+          userId: session.userId,
+          displayName,
+          durationMs: Date.now() - start,
+        });
 
         if (typeof ack === 'function') {
-          ack({ ok: true, roomId: room.roomId, userId: session.userId });
+          ack({ ok: true, roomId: room.roomId, userId: session.userId, participants: getParticipants(room.roomId) });
         }
 
+        io.to(room.roomId).emit(SERVER_EVENTS.PARTICIPANTS_UPDATED, { participants: getParticipants(room.roomId) });
         socket.emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(room.roomId, session.userId));
       } catch (err) {
         logger.error({ event: EVENTS.ROOM_CREATE, error: err.message });
@@ -57,7 +70,8 @@ export function registerHandlers(io) {
     // ── room:join ────────────────────────────────────────────────────────────
     socket.on(EVENTS.ROOM_JOIN, (payload, ack) => {
       const start = Date.now();
-      const { roomId, lastSequence = 0 } = payload || {};
+      const { roomId, lastSequence = 0, displayName: rawDisplayName } = payload || {};
+      const displayName = (rawDisplayName ?? '').trim() || 'Unknown';
       const session = sessions.get(socket.id);
 
       const room = getRoom(roomId);
@@ -70,8 +84,9 @@ export function registerHandlers(io) {
       }
 
       session.roomId = roomId;
+      session.displayName = displayName;
       socket.join(roomId);
-      addUserToRoom(roomId, session.userId);
+      addUserToRoom(roomId, session.userId, displayName);
 
       const operations = lastSequence > 0
         ? room.operations.filter((op) => op.sequenceNumber > lastSequence)
@@ -84,11 +99,21 @@ export function registerHandlers(io) {
         opCount: operations.length,
         durationMs: Date.now() - start,
       });
+      logger.info({
+        timestamp: new Date().toISOString(),
+        level: 'INFO',
+        event: 'participant:join',
+        roomId,
+        userId: session.userId,
+        displayName,
+        durationMs: Date.now() - start,
+      });
 
       if (typeof ack === 'function') {
-        ack({ ok: true, operations, userId: session.userId });
+        ack({ ok: true, operations, userId: session.userId, participants: getParticipants(roomId) });
       }
 
+      io.to(roomId).emit(SERVER_EVENTS.PARTICIPANTS_UPDATED, { participants: getParticipants(roomId) });
       socket.emit(SERVER_EVENTS.UNDO_STATE, getUndoRedoState(roomId, session.userId));
     });
 
@@ -266,13 +291,46 @@ export function registerHandlers(io) {
       logger.info({ event: EVENTS.REDO_REQUEST, roomId: session.roomId, userId: session.userId, operationId: result.operation.operationId, type: result.operation.type, durationMs: Date.now() - start });
     });
 
+    // ── room:leave ────────────────────────────────────────────────────────────
+    socket.on(EVENTS.ROOM_LEAVE, () => {
+      const session = sessions.get(socket.id);
+      if (!session?.roomId) return;
+
+      const { roomId, userId: uid } = session;
+      clearUserHistory(roomId, uid);
+      socket.to(roomId).emit(SERVER_EVENTS.USER_LEFT, { userId: uid });
+      removeUserFromRoom(roomId, uid);
+      socket.to(roomId).emit(SERVER_EVENTS.PARTICIPANTS_UPDATED, { participants: getParticipants(roomId) });
+      socket.leave(roomId);
+      session.roomId = null;
+      session.displayName = null;
+
+      logger.info({
+        timestamp: new Date().toISOString(),
+        level: 'INFO',
+        event: 'participant:leave',
+        roomId,
+        userId: uid,
+      });
+    });
+
     // ── disconnect ───────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
       const session = sessions.get(socket.id);
       if (session?.roomId) {
-        clearUserHistory(session.roomId, session.userId);
-        socket.to(session.roomId).emit(SERVER_EVENTS.USER_LEFT, { userId: session.userId });
-        removeUserFromRoom(session.roomId, session.userId);
+        const { roomId, userId: uid } = session;
+        clearUserHistory(roomId, uid);
+        socket.to(roomId).emit(SERVER_EVENTS.USER_LEFT, { userId: uid });
+        removeUserFromRoom(roomId, uid);
+        socket.to(roomId).emit(SERVER_EVENTS.PARTICIPANTS_UPDATED, { participants: getParticipants(roomId) });
+        logger.info({
+          timestamp: new Date().toISOString(),
+          level: 'INFO',
+          event: 'participant:leave',
+          roomId,
+          userId: uid,
+          displayName: session.displayName ?? 'Unknown',
+        });
       }
       sessions.delete(socket.id);
       logger.info({ event: 'socket:disconnect', userId: session?.userId, socketId: socket.id });

@@ -18,9 +18,10 @@ import { SERVER_EVENTS, ERROR_CODES } from 'shared/constants.js';
  * @param {function} params.onLeaveRoom   - called with optional message string
  * @param {function} [params.addOperations] - called with delta ops on reconnect
  * @param {Array}   [params.operations]   - current operations array (read via ref for reconnect lastSequence)
+ * @param {string|null} [params.displayName] - display name to register with the server on join/reconnect
  * @param {boolean} [params.skipInitialJoin] - true when room is already joined (e.g., hook is used for reconnect-only in RoomPage)
  */
-export function useRoom({ roomId, userId, lastSequence, onRoomJoined, onLeaveRoom, addOperations, operations: allOperations = null, skipInitialJoin = false }) {
+export function useRoom({ roomId, userId, displayName, lastSequence, onRoomJoined, onLeaveRoom, addOperations, operations: allOperations = null, skipInitialJoin = false }) {
   const onLeaveRoomRef    = useRef(onLeaveRoom);
   onLeaveRoomRef.current  = onLeaveRoom;
 
@@ -37,10 +38,10 @@ export function useRoom({ roomId, userId, lastSequence, onRoomJoined, onLeaveRoo
       if (skipInitialJoin) return;
       try {
         if (!roomId) {
-          const result = await createRoom();
+          const result = await createRoom(displayName);
           if (!cancelled) onRoomJoined(result);
         } else {
-          const result = await joinRoom(roomId, lastSequence);
+          const result = await joinRoom(roomId, displayName, lastSequence);
           if (!cancelled) onRoomJoined({ roomId, userId, ...result });
         }
       } catch (err) {
@@ -58,7 +59,7 @@ export function useRoom({ roomId, userId, lastSequence, onRoomJoined, onLeaveRoo
         (max, op) => Math.max(max, op.sequenceNumber ?? 0), 0
       );
       try {
-        const { operations: delta } = await joinRoom(roomId, currentSeq || undefined);
+        const { operations: delta } = await joinRoom(roomId, displayName, currentSeq || undefined);
         if (!cancelled && delta?.length && addOperationsRef.current) {
           addOperationsRef.current(delta);
         }

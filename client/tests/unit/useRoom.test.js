@@ -44,7 +44,7 @@ describe('useRoom hook', () => {
     renderHook(() => useRoom({ roomId: 'EXIST1', userId: null, onRoomJoined: vi.fn(), onLeaveRoom: vi.fn() }));
     await act(async () => {});
 
-    expect(socketService.joinRoom).toHaveBeenCalledWith('EXIST1', undefined);
+    expect(socketService.joinRoom).toHaveBeenCalledWith('EXIST1', undefined, undefined);
   });
 
   it('cleans up socket listeners on unmount', async () => {

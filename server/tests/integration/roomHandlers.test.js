@@ -108,3 +108,57 @@ describe('room:join handler', () => {
     client3.disconnect();
   });
 });
+
+describe('room:leave handler', () => {
+  function waitForEvent(client, event) {
+    return new Promise((resolve) => client.once(event, resolve));
+  }
+
+  it('removes the leaving user from the participants list broadcast to remaining members', async () => {
+    const creator = makeClient();
+    await waitForConnect(creator);
+    const { roomId } = await emitWithAck(creator, EVENTS.ROOM_CREATE, { displayName: 'Alice' });
+
+    const joiner = makeClient();
+    await waitForConnect(joiner);
+    await emitWithAck(joiner, EVENTS.ROOM_JOIN, { roomId, displayName: 'Bob' });
+
+    // Wait for the join PARTICIPANTS_UPDATED that creator will receive, then reset
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Creator listens for the PARTICIPANTS_UPDATED triggered by Bob leaving
+    const updatePromise = waitForEvent(creator, 'participants:updated');
+
+    joiner.emit(EVENTS.ROOM_LEAVE, { roomId });
+
+    const update = await updatePromise;
+    expect(update.participants).toHaveLength(1);
+    expect(update.participants[0].displayName).toBe('Alice');
+
+    creator.disconnect();
+    joiner.disconnect();
+  });
+
+  it('does not broadcast PARTICIPANTS_UPDATED to the leaving user', async () => {
+    const creator = makeClient();
+    await waitForConnect(creator);
+    const { roomId } = await emitWithAck(creator, EVENTS.ROOM_CREATE, { displayName: 'Alice' });
+
+    const joiner = makeClient();
+    await waitForConnect(joiner);
+    await emitWithAck(joiner, EVENTS.ROOM_JOIN, { roomId, displayName: 'Bob' });
+    await new Promise((r) => setTimeout(r, 50));
+
+    let leaverReceivedUpdate = false;
+    joiner.on('participants:updated', () => { leaverReceivedUpdate = true; });
+
+    joiner.emit(EVENTS.ROOM_LEAVE, { roomId });
+
+    // Give time for any spurious event to arrive
+    await new Promise((r) => setTimeout(r, 100));
+    expect(leaverReceivedUpdate).toBe(false);
+
+    creator.disconnect();
+    joiner.disconnect();
+  });
+});
